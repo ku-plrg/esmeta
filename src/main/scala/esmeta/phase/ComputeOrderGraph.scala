@@ -44,7 +44,7 @@ case object ComputeOrderGraph extends Phase[CFG, (Ast, CFG)] {
         {
           import verify.*
           val pw = getPrintWriter("og.dot", false)
-          pw.println(Transform(sdo, cfg).result.toDot)
+          pw.println(Transform(sdo, cfg, ast0).result.toDot)
           pw.flush()
         }
         SystemUtils.executeCmd(

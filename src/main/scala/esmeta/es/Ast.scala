@@ -25,7 +25,7 @@ sealed trait Ast extends ESElem with Locational {
   def idx: Int = this match
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
-    case h: Hole                    => ???
+    case h: Hole                    => 0 // TODO 수정해서 idx까지 잘 들어가게 해야하는건가
 
   /** validity check */
   def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)

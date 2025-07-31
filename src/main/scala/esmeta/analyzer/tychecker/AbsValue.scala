@@ -1,5 +1,6 @@
 package esmeta.analyzer.tychecker
 
+import esmeta.*
 import esmeta.cfg.*
 import esmeta.interpreter.Interpreter
 import esmeta.ir.{Name, BOp, COp, VOp, MOp, UOp, Local, IRElem}
@@ -131,22 +132,51 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** get syntactic SDO */
     def getSdo(method: String)(using AbsState): List[(Func, AbsValue)] = {
+      // println("반가웡.")
+      // println("내가 찾은 ast는...")
+      // println(this.ty.ast)
+      // println("이거임ㄷㄷ;")
       import cfg.sdoInfo.*
       this.ty.ast match
         case AstTy.Top =>
+          // println("그러니까 AstTy.Top이네.")
           for {
             base <- noBase.getOrElse(method, Set()).toList
           } yield base.func -> AbsValue(base.thisTy)
         case AstTy.Simple(names) =>
+          // println("그러니까 AstTy.Simple이네.")
           for {
             name <- names.toList
             base <- simple.getOrElse((name, method), Set())
           } yield base.func -> AbsValue(base.thisTy)
         case AstTy.Detail(name, idx) =>
+          // println("그러니까 AstTy.Detail이네.")
           for {
             base <- indexed.getOrElse(((name, idx), method), Set()).toList
           } yield base.func -> AbsValue(base.thisTy)
+        case AstTy.Value(asts) =>
+          // println("참고로 여기서 asts는 AstValue의 Set임. 후덜덜;;")
+          val (holeAsts, concreteAsts) =
+            asts.partition(_.ast.isInstanceOf[es.Hole])
+          val holes = for {
+            AstValue(ast) <- holeAsts
+            hole = ast.asInstanceOf[es.Hole]
+            base <- indexed
+              .getOrElse(((hole.name, hole.idx), method), Set())
+              .toList
+          } yield base.func -> AbsValue(base.thisTy)
+          val concretes = for {
+            AstValue(ast) <- concreteAsts.toList
+            // Base(func: Func, name: String, i: Int, j: Int, method: String)
+            (ast0, func) <- ast.getSdo(method)
+            base = SdoInfo.Base(func, ast0.name, ast0.idx, ast0.subIdx, method)
+          } yield base.func -> AbsValue(AstValueT(Set(AstValue(ast0))))
+          (holes ++ concretes).toList
     }
+
+    /** cache to get syntax-directed operation (SDO) */
+    private val getSdo =
+      cached[(es.Ast, String), Option[(es.Ast, Func)]](_.getSdo(_))
 
     /** parse strings with a rule */
     def parse(rule: AbsValue)(using AbsState): AbsValue = {

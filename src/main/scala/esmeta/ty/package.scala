@@ -98,6 +98,9 @@ def AstT(xs: Set[String]): ValueTy =
 def AstT(xs: String*): ValueTy = AstT(xs.toSet)
 def AstT(name: String, idx: Int): ValueTy =
   ValueTy(ast = AstTy.Detail(name, idx))
+def AstValueT(asts: Set[AstValue]): ValueTy =
+  if (asts.isEmpty) BotT
+  else ValueTy(ast = AstTy.Value(asts.toSet))
 def GrammarSymbolT: ValueTy = ValueTy(grammarSymbol = Inf)
 def GrammarSymbolT(xs: GrammarSymbol*): ValueTy =
   if (xs.isEmpty) BotT

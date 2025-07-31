@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{GrammarSymbol, Number, Math}
+import esmeta.state.{AstValue, GrammarSymbol, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -111,6 +111,8 @@ trait Walker extends BasicWalker {
       case Top               => Top
       case Simple(names)     => Simple(walkSet(names, walk))
       case Detail(name, idx) => Detail(walk(name), walk(idx))
+      case Value(asts)       => Value(walkSet(asts, walk))
+  def walk(ast: AstValue): AstValue = ast
 
   /** grammar symbol types */
   def walkGrammarSymbol(

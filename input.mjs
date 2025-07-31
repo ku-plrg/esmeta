@@ -1,0 +1,1 @@
+@@[e1 : ShortCircuitExpression] ? @@[e2 :  Identifier] : @@[e3 : AssignmentExpression]

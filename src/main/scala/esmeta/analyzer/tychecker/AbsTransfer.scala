@@ -181,6 +181,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             given AbsState = st
             bty = bv.ty
           } yield {
+
+            // println("sdocall체크하러왓어요;;")
+            // println(
+            //   s"bv: $bv, bty: $bty, method: $method, args: $args, vs: $vs",
+            // )
+            // println("체크끗;;")
+
             var newV: AbsValue = AbsValue.Bot
             // lexical sdo
             newV ⊔= bv.getLexical(method)
@@ -479,6 +486,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[Node]): Result[AbsValue] = st => {
       val (v, newSt) = (for {
         v <- basicTransfer(expr)
+        // _ = println(s"근데 basicTransfer하면 이거임;; -> $v ㅎㄷㄷ;;")
         given AbsState <- get
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
@@ -1074,38 +1082,44 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** transfer function for references */
     def transfer(
       ref: Ref,
-    )(using np: NodePoint[Node]): Result[AbsValue] = ref match
-      // a precise type of `the active function object` in built-in functions
-      case Field(
-            Field(Global("EXECUTION_STACK"), EMath(0)),
-            EStr("Function"),
-          ) if np.func.isBuiltin =>
-        AbsValue(ConstructorT)
-      // a precise type for intrinsic objects
-      case Field(Field(base, EStr("Intrinsics")), EStr(name)) =>
-        for {
-          b <- transfer(base)
-          given AbsState <- get
-          v <-
-            if (b.ty <= RealmT) {
-              val ty = cfg.init.intr.kinds.getOrElse(
-                name,
-                if (name.startsWith("%Symbol.")) SymbolT else ObjectT,
-              )
-              pure(AbsValue(ty))
-            } else transfer(base)
-        } yield v
-      case x: Var =>
-        for {
-          v <- get(_.get(x))
-        } yield v
-      case field @ Field(base, expr) =>
-        for {
-          b <- transfer(base)
-          p <- transfer(expr)
-          given AbsState <- get
-          v <- get(_.get(b, p))
-        } yield v
+    )(using np: NodePoint[Node]): Result[AbsValue] =
+      // println(s"transfer ref: $ref") // debug
+
+      ref match
+        // a precise type of `the active function object` in built-in functions
+        case Field(
+              Field(Global("EXECUTION_STACK"), EMath(0)),
+              EStr("Function"),
+            ) if np.func.isBuiltin =>
+          AbsValue(ConstructorT)
+        // a precise type for intrinsic objects
+        case Field(Field(base, EStr("Intrinsics")), EStr(name)) =>
+          for {
+            b <- transfer(base)
+            given AbsState <- get
+            v <-
+              if (b.ty <= RealmT) {
+                val ty = cfg.init.intr.kinds.getOrElse(
+                  name,
+                  if (name.startsWith("%Symbol.")) SymbolT else ObjectT,
+                )
+                pure(AbsValue(ty))
+              } else transfer(base)
+          } yield v
+        case x: Var =>
+          for {
+            v <- get(_.get(x))
+            // _ = get(st => println(s"absstate는 $st ㅎㄷㄷ;;"))
+            // _ = println(s"근데 Var $x -> $v ㅎㄷㄷㄷㄷㄷ;;")
+          } yield v
+        case field @ Field(base, expr) =>
+          for {
+            b <- transfer(base)
+            p <- transfer(expr)
+            given AbsState <- get
+            // _ = println(s"근데 Field $field -> base: $b, expr: $p ㅎㄷㄷ;;")
+            v <- get(_.get(b, p))
+          } yield v
 
     /** transfer function for unary operators */
     def transfer(

@@ -3,7 +3,7 @@ package esmeta.ty.util
 import esmeta.LINE_SEP
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.lang.Syntax
-import esmeta.state.{Number, Math}
+import esmeta.state.{AstValue, Number, Math}
 import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -249,6 +249,16 @@ class Stringifier(
       case Top           => app
       case Simple(names) => app >> names
       case Detail(x, i)  => app >> "[" >> x >> "[" >> i >> "]" >> "]"
+      case Value(asts) =>
+        if (asts.isEmpty) app >> "ast[]"
+        else {
+          given Rule[AstValue] = (app, ast) =>
+            // app >> ast.ast.name >> "[" >> ast.ast.idx >> "]"
+            app >> ast.ast.toString
+          given Rule[Iterable[AstValue]] =
+            iterableRule[AstValue](left = "ast[", sep = ", ", right = "]")
+          app >> asts.toList
+        }
 
   /** sign domain */
   given signRule: Rule[Sign] = (app, sign) =>

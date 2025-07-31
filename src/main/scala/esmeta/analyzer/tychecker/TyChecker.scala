@@ -313,7 +313,7 @@ class TyChecker(
     } else AbsState(true, locals.toMap, Map(), SymPred())
 
   /** get initial abstract states in each node point */
-  private def getInitNpMap(
+  protected def getInitNpMap(
     targets: List[Func],
   ): Map[NodePoint[Node], AbsState] = (for {
     func <- targets
@@ -322,7 +322,7 @@ class TyChecker(
     np = NodePoint(func, entry, view)
   } yield np -> st).toMap
 
-  private def getViewWithSt(func: Func): List[(View, AbsState)] =
+  protected def getViewWithSt(func: Func): List[(View, AbsState)] =
     val pairs = func.params.map {
       case Param(x, ty, _, _) => x -> ty.ty.toValue
     }

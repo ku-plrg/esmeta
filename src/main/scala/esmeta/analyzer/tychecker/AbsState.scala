@@ -156,9 +156,13 @@ trait AbsStateDecl { self: TyChecker =>
       val guard = lookupGuard(base.guard, field)
       (base.symty, field.ty.getSingle) match
         case (SRef(ref), One(Str(f))) =>
+          // println("케이스 1 ㅎㄷㄷ;")
           AbsValue(SRef(SField(ref, STy(StrT(f)))), guard)
         case _ =>
-          AbsValue(STy(get(base.ty, field.ty)), guard)
+          // println("케이스 2 (fallback) ㅎㄷㄷ;")
+          val ret = AbsValue(STy(get(base.ty, field.ty)), guard)
+          // println(s"케이스 2 결과: $ret ;;;")
+          ret
     }
     def get(baseTy: ValueTy, fieldTy: ValueTy)(using AbsState): ValueTy =
       lookupAst(baseTy.ast, fieldTy) ||
@@ -177,7 +181,29 @@ trait AbsStateDecl { self: TyChecker =>
         case Simple(names) =>
           if (!field.math.isBottom) AstT // TODO more precise
           else lookupAstStrField(field)
-        case _ => AstT
+        case Value(asts) =>
+          asts.map(a => lookupAstRealValue(a, field)).fold(BotT)(_ || _)
+        case AstTy.Top => AstT
+
+    private def lookupAstRealValue(
+      ast: AstValue,
+      field: ValueTy,
+    )(using AbsState): ValueTy =
+      val maths = field.math.getSingle match
+        case Zero => BotT
+        case One(k) =>
+          (for {
+            child <- ast.ast.get(k)(using cfg)
+          } yield AstValueT(Set(AstValue(child)))).getOrElse(BotT)
+        case Many => AstT
+      val str = field.str.getSingle match
+        case Zero => BotT
+        case One(k) =>
+          (for {
+            child <- ast.ast.get(Str(k))(using cfg)
+          } yield AstValueT(Set(AstValue(child)))).getOrElse(BotT)
+        case Many => AstT
+      maths || str
 
     // lookup index fields of ASTs
     private def lookupAstIdxField(

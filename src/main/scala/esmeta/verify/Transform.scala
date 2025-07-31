@@ -3,7 +3,7 @@ package esmeta.verify
 import esmeta.*
 import scala.util.chaining.*
 
-class Transform(entry: cfg.Func, builtCfg: cfg.CFG):
+class Transform(entry: cfg.Func, builtCfg: cfg.CFG, initialThisValue: es.Ast):
   val counter = new InvokeIdCounter
 
   def wrapped(entry: cfg.Func): (Set[Node], Map[Node, Set[Node]]) =
@@ -22,6 +22,7 @@ class Transform(entry: cfg.Func, builtCfg: cfg.CFG):
     val checker = FindSdo(
       builtCfg,
       entry,
+      initialThisValue,
     )
 
     checker.analyze
