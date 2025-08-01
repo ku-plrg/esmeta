@@ -3,7 +3,6 @@ package esmeta.dump.visualizer
 import esmeta.*
 import esmeta.cfg.*
 import esmeta.dump.visualizer.util.*
-import esmeta.error.ESMetaError
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -22,7 +21,6 @@ object DumpNodeIdToTest262 {
 
     val nvList =
       readJson[List[NodeViewInfoJson]](s"$RECENT_DIR/node-coverage.json")
-    val total = nvList.length
     nvList.zipWithIndex.foreach {
       case (NodeViewInfoJson(_, NodeViewJson(node, view), encoded), idx) =>
         val featIdToProgId = nodeIdToTest262.getOrElse(node.id, MMap.empty)

@@ -1,4 +1,4 @@
-package esmeta.phase
+package esmeta.dump.debugger
 
 import esmeta.*
 import esmeta.cfg.CFG
@@ -19,16 +19,8 @@ import io.circe.parser.decode;
 import scala.util.Try
 import scala.util.chaining.*
 
-/** `dump-debugger` phase */
-case object DumpDebugger extends Phase[CFG, Unit] {
-  val name = "dump-debugger"
-  val help =
-    "dumps the resources required by the standalone debugger. (for internal use)"
-  def apply(
-    cfg: CFG,
-    cmdConfig: CommandConfig,
-    config: Config,
-  ): Unit = { dumpStatic(cfg); dumpDynamic(cfg) }
+object DumpDebugger:
+  def apply(cfg: CFG): Unit = { dumpStatic(cfg); dumpDynamic(cfg) }
 
   private def dumpDynamic(cfg: CFG): Unit = {
     dump("funcs.cfg")(cfg)(using WebJsonProtocol(cfg).cfgToFuncEncoder)
@@ -68,7 +60,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
 
   private def dump[T: Encoder](tag: String)(data: T): (Long, Json) = {
     val tuple @ (_, json) = time { data.asJson }
-    dumpFile(json.spaces2, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
+    dumpFile(json.noSpaces, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
     tuple
   }
 
@@ -95,9 +87,3 @@ case object DumpDebugger extends Phase[CFG, Unit] {
         throw error
     }
   }.toOption
-
-  def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
-
-}

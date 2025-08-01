@@ -2,8 +2,8 @@ package esmeta.dump.visualizer
 
 import esmeta.*
 import esmeta.cfg.*
-import esmeta.error.ESMetaError
 import esmeta.ir.{Type as IRType, Func as IrFunc, *}
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
@@ -74,7 +74,7 @@ object DumpSecIdToFuncInfo {
   def parseMethodName(func: Func): String =
     JsonParser.parseAll(JsonParser.methodName, func.name) match {
       case JsonParser.Success(result, _) => result._2
-      case _ => throw ESMetaError(s"invalid method name ${func.name}")
+      case _ => raise(s"invalid method name ${func.name}")
     }
 
   // sectionId | astName | production

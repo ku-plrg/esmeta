@@ -2,10 +2,10 @@ package esmeta.dump.visualizer.util
 
 import esmeta.cfg.*
 import esmeta.dump.visualizer.*
-import esmeta.error.ESMetaError
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
@@ -19,7 +19,7 @@ class VisualizerJsonProtocol(cfg: CFG) {
       case Some(head: BuiltinHead) =>
         BuiltinFeature(func, head)
       case _ =>
-        throw ESMetaError(s"invalid feature $fName")
+        raise(s"invalid feature $fName")
   }
 
   given nodeViewInfoDecoder: Decoder[NodeViewInfoJson] = Decoder.instance(c =>
@@ -41,7 +41,7 @@ class VisualizerJsonProtocol(cfg: CFG) {
     val result = JsonParser.parseAll(JsonParser.nodeName, name)
     result match
       case JsonParser.Success(value, _) => value
-      case _ => throw ESMetaError(s"invalid node name $name")
+      case _                            => raise(s"invalid node name $name")
   }
   given NodeDecoder: Decoder[NodeJson] = Decoder.instance(c =>
     for {
@@ -64,10 +64,10 @@ class VisualizerJsonProtocol(cfg: CFG) {
             }
             .mkString("-")
         case JsonParser.NoSuccess(msg, next) =>
-          throw ESMetaError(
+          raise(
             s"invalid call path $path: $msg at line ${next.pos.line}, column ${next.pos.column}",
           )
-        case _ => throw ESMetaError(s"invalid call path $path")
+        case _ => raise(s"invalid call path $path")
     }
     path match
       case None       => None
