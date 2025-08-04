@@ -50,14 +50,14 @@ class ExecRoute(service: DebuggerService)(using JsonProtocol) {
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "run" =>
-      handleErrors(decodeJson[models.RunRequest](req).flatMap(service.run))
+      handleErrors(decodeJson[DataModel.RunRequest](req).flatMap(service.run))
 
     case req @ POST -> Root / "backToProvenance" =>
       handleErrors(req.as[String].flatMap(service.backToProvenance))
 
     case req @ POST -> Root / "resumeFromIter" =>
       handleErrors(
-        decodeJson[models.ResumeFromIterRequest](req)
+        decodeJson[DataModel.ResumeFromIterRequest](req)
           .flatMap(service.resumeFromIter),
       )
 

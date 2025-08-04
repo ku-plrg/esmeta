@@ -3,7 +3,7 @@ package esmeta.web.service
 import esmeta.cfg.CFG
 import esmeta.state.DynamicAddr
 import esmeta.web.Debugger
-import esmeta.web.http.models
+import esmeta.web.http.DataModel
 import esmeta.web.util.JsonProtocol
 import cats.effect.IO
 import cats.effect.kernel.Ref
@@ -15,7 +15,7 @@ case class DebuggerServiceLive(
   cfg: CFG,
   debuggerRef: Ref[IO, Option[Debugger]],
   lock: Semaphore[IO],
-) extends DebuggerService {
+) extends DebuggerService:
 
   given JsonProtocol = JsonProtocol(cfg)
 
@@ -28,7 +28,7 @@ case class DebuggerServiceLive(
 
   private def withPermit[A](ioa: IO[A]): IO[A] = lock.permit.use(_ => ioa)
 
-  def addBreak(data: (Boolean, String, List[Int], Boolean)): IO[Boolean] =
+  def addBreak(data: DataModel.BpData): IO[Boolean] =
     withPermit(withDebugger(_.addBreak(data)))
 
   def removeBreak(idx: Int): IO[Unit] =
@@ -43,7 +43,7 @@ case class DebuggerServiceLive(
   def toggleAllBreaks: IO[Unit] =
     withPermit(withDebugger(_.toggleBreakAll))
 
-  def run(body: models.RunRequest): IO[Json] = withPermit {
+  def run(body: DataModel.RunRequest): IO[Json] = withPermit {
     val (sourceText, bpData) = body
     val debugger = Debugger(cfg.init.from(sourceText))
     for {
@@ -53,7 +53,7 @@ case class DebuggerServiceLive(
       .withAdditional(debugger, reprint = true)
   }
 
-  def resumeFromIter(body: models.ResumeFromIterRequest): IO[Json] =
+  def resumeFromIter(body: DataModel.ResumeFromIterRequest): IO[Json] =
     withPermit {
       val (sourceText: String, bpData, iterCount) = body
       val debugger = Debugger(cfg.init.from(sourceText))
@@ -93,4 +93,3 @@ case class DebuggerServiceLive(
   def rewind: IO[Json] = withPermit {
     withDebugger(d => d.rewind.withAdditional(d))
   }
-}

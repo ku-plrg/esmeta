@@ -2,44 +2,40 @@ package esmeta.dump.visualizer
 
 import esmeta.*
 import esmeta.cfg.*
-import esmeta.ir.{Type as IRType, Func as IrFunc, *}
-import esmeta.util.BaseUtils.*
+import esmeta.dump.visualizer.util.NameResolver
 import esmeta.util.SystemUtils.*
-import io.circe.*, io.circe.syntax.*
-import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
 
-object DumpSecIdToFuncInfo {
+object DumpSecIdToFuncInfo:
+
+  /* section id of html */
+  type SecId = String
+  /* funcId, visual funcName */
+  type SingleFuncInfo = (Int, String)
+  /* funcId, visual funcName, fallback id (e.g. abstract closures) */
+  type MergedFuncInfo = (Int, String, List[Int])
+
   def apply(cfg: CFG): Unit =
     given CFG = cfg
 
-    // secId to funcid, visual funcName, fallback id (closures)
-    val secIdToFuncInfo: MMap[String, (Int, String, List[Int])] = MMap.empty
-
-    for {
-      func <- cfg.funcs
-      irFunc = func.irFunc
-      algo <- func.irFunc.algo
-      sectionId = algo.elem.parent.id
-    } {
-      val secId =
-        if (func.isSDO && func.sdoInfo.isDefined)
-          s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
-        else sectionId
-
-      val prev = secIdToFuncInfo.get(secId)
-      val curr = prev
-        .map {
-          case (prevId, prevName, fallbackIds) =>
-            if (func.isClo || func.isCont) then
-              (prevId, prevName, fallbackIds :+ func.id)
-            else (func.id, convertFuncName(func), fallbackIds :+ prevId)
+    val secIdToFuncInfo: Map[SecId, MergedFuncInfo] =
+      cfg.funcs
+        .flatMap[(SecId, SingleFuncInfo)](apply)
+        .groupBy[SecId]((secId, _) => secId)
+        .view
+        .mapValues[List[SingleFuncInfo]](_.map((_, single) => single))
+        .mapValues[Option[MergedFuncInfo]] { infos =>
+          infos
+            // prefer non-closure functions
+            .find((funcId, _) =>
+              val func = cfg.funcs(funcId)
+              !func.isClo && !func.isCont,
+            )
+            // pick arbitrary
+            .orElse(infos.headOption)
+            .map((_, _, infos.map(_._1).distinct))
         }
-        .getOrElse(
-          (func.id, convertFuncName(func), Nil),
-        )
-
-      secIdToFuncInfo += (secId -> curr)
-    }
+        .collect[(SecId, MergedFuncInfo)] { case (k, Some(v)) => k -> v }
+        .toMap[SecId, MergedFuncInfo]
 
     dumpJson(
       name = "secIdToFunc",
@@ -48,49 +44,14 @@ object DumpSecIdToFuncInfo {
       silent = true,
     )
 
-  def convertFuncName(func: Func)(using cfg: CFG): String =
-    if (func.isMethod)
-      val parsed = parseMethodName(func)
-      if (func.kind == FuncKind.InternalMeth) s"[[$parsed]]" else parsed
-    else if (func.isBuiltin) func.name.substring("INTRINSICS.".length)
-    else if (func.isSDO) {
-      func.sdoInfo.get match
-        case SdoInfo.Default(func, method) => method
-        case SdoInfo.Base(_, name, i, j, method) =>
-          val buffer: ListBuffer[String] = ListBuffer.empty
-          buffer += s"[$method] $name :"
-          cfg.grammar.prods.find(_.name == name).foreach { prod =>
-            val rhs = prod.rhsVec(i)
-            rhs.getSymbols(j).flatMap(x => x).foreach { symbol =>
-              (symbol.getT, symbol.getNt) match
-                case (Some(t), None)  => buffer += t.term
-                case (None, Some(nt)) => buffer += nt.name
-                case _                =>
-            }
-          }
-          buffer.mkString(" ")
-    } else func.name
-
-  def parseMethodName(func: Func): String =
-    JsonParser.parseAll(JsonParser.methodName, func.name) match {
-      case JsonParser.Success(result, _) => result._2
-      case _ => raise(s"invalid method name ${func.name}")
+  private def apply(func: Func)(using CFG): Option[(SecId, SingleFuncInfo)] =
+    for {
+      algo <- func.irFunc.algo
+      sectionId = algo.elem.parent.id
+    } yield {
+      val secId =
+        if (func.isSDO && func.sdoInfo.isDefined)
+          s"$sectionId|${NameResolver.extractSDO(func.sdoInfo.get)}"
+        else sectionId
+      secId -> (func.id, NameResolver.convertFuncName(func))
     }
-
-  // sectionId | astName | production
-  def extractSDO(sdoInfo: SdoInfo, cfg: CFG): String = sdoInfo match
-    case SdoInfo.Default(func, method) => "ToDo"
-    case SdoInfo.Base(_, name, i, j, method) =>
-      val buffer: ListBuffer[String] = ListBuffer.empty
-      buffer += name
-      cfg.grammar.prods.find(_.name == name).foreach { prod =>
-        val rhs = prod.rhsVec(i)
-        rhs.getSymbols(j).flatMap(x => x).foreach { symbol =>
-          (symbol.getT, symbol.getNt) match
-            case (Some(t), None)  => buffer += t.term
-            case (None, Some(nt)) => buffer += nt.name
-            case _                =>
-        }
-      }
-      buffer.mkString("|")
-}

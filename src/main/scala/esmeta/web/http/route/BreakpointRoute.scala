@@ -30,7 +30,7 @@ class BreakpointRoute(service: DebuggerService) {
     case req @ POST -> Root =>
       handleErrors {
         for {
-          body <- decodeJson[models.AddBreakpointRequest](req)
+          body <- decodeJson[DataModel.AddBreakpointRequest](req)
           bool <- service.addBreak(body)
           resp <- bool.asJsonOk
         } yield resp

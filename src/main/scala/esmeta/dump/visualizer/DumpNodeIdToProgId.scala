@@ -8,110 +8,84 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
-import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
+import scala.collection.mutable.{Map as MMap, Set as MSet}
 
 object DumpNodeIdToProgId {
-  def trimCode(path: String): String = readFile(path)
-    .trim()
-    .replace("\"use strict\";\n", "")
+  extension (str: String)
+    def trimCode: String = str.trim().replace("\"use strict\";\n", "")
 
-  def getStepCnt(
-    st: State,
-    targetNodeId: Int,
-    targetCallPath: String,
-    printMsg: () => Unit,
-  ): Int =
-    var stepCnt = 1
-    try new StepCounter(st, targetNodeId, targetCallPath).result
-    catch
-      case e =>
-        printMsg()
-        stepCnt = e.getMessage().toInt
-    return stepCnt
+  type NodeIdToProgId = MMap[Int, MMap[String, MMap[String, (Int, Int)]]]
+
+  val RECENT_DIR = s"$FUZZ_LOG_DIR/recent"
 
   def apply(cfg: CFG): Unit =
+    given CFG = cfg
+
     val jsonProtocol = VisualizerJsonProtocol(cfg)
     import jsonProtocol.{*, given}
     val nvList =
       readJson[List[NodeViewInfoJson]](s"$RECENT_DIR/node-coverage.json")
 
-    val nodeIdToProgId: MMap[Int, MMap[String, MMap[String, (Int, Int)]]] =
-      MMap.empty
+    val nodeIdToProgId: NodeIdToProgId = MMap.empty
     val progIdSet: MSet[Int] = MSet.empty
 
     val total = nvList.length
-    nvList.zipWithIndex.foreach {
-      case (NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr), idx) =>
-        val script = scriptStr.toInt
-        progIdSet += script
 
-        val featIdToProgId = nodeIdToProgId.getOrElse(node.id, MMap.empty)
-        val currentCode = trimCode(s"$RECENT_DIR/minimal/$script.js")
+    for ((nv, idx) <- nvList.zipWithIndex) do {
+      val NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr) = nv
+      val script = scriptStr.toInt
+      progIdSet += script
 
-        view match
-          case Some(ViewJson(enclosing, feature, path)) =>
-            val featId = feature.id.toString
-            val pathStr = path.getOrElse("")
+      val featIdToProgId = nodeIdToProgId.getOrElseUpdate(node.id, MMap.empty)
+      val currentCode = readFile(s"$RECENT_DIR/minimal/$script.js").trimCode
 
-            val stepCnt = getStepCnt(
-              cfg.init.from(currentCode),
-              node.id,
-              pathStr,
-              () => println(s"${idx + 1}/$total"),
-            )
+      val (featId, pathStr) = view
+        .map(v => (v.feature.id.toString, v.path.getOrElse("")))
+        .getOrElse(("", ""))
+      val stepCnt = StepCounter.count(currentCode, node.id, pathStr) {
+        println(s"\r${idx + 1}/$total")
+      }
 
-            val cpToProgId =
-              featIdToProgId.getOrElseUpdate(featId, MMap.empty)
-            cpToProgId.getOrElseUpdate(pathStr, (script, stepCnt))
+      featIdToProgId
+        .getOrElseUpdate(featId, MMap.empty)
+        // update cpToProgId
+        .getOrElseUpdate(pathStr, (script, stepCnt))
 
-            val min = featIdToProgId.getOrElseUpdate("minimal", MMap.empty)
-            min.get("minimal") match
-              case Some(scriptId, _) =>
-                if (
-                  trimCode(
-                    s"$RECENT_DIR/minimal/$scriptId.js",
-                  ).length > currentCode.length
-                ) min += "minimal" -> (script, stepCnt)
-              case None => min += "minimal" -> (script, stepCnt)
-          case None =>
-            val stepCnt = getStepCnt(
-              cfg.init.from(currentCode),
-              node.id,
-              "",
-              () => println(s"${idx + 1}/$total"),
-            )
+      view match
+        case Some(ViewJson(enclosing, feature, path)) =>
+          val min = featIdToProgId.getOrElseUpdate("minimal", MMap.empty)
+          min.get("minimal") match
+            case Some(scriptId, _) =>
+              val prevMinimal = readFile(
+                s"$RECENT_DIR/minimal/$scriptId.js",
+              )
+              val foundNewMinimal =
+                prevMinimal.trimCode.length > currentCode.length
+              if (foundNewMinimal) min += "minimal" -> (script, stepCnt)
+            case None => min += "minimal" -> (script, stepCnt)
+        case None =>
+          featIdToProgId
+            .getOrElseUpdate("minimal", MMap.empty)
+            .getOrElseUpdate("minimal", (script, stepCnt))
 
-            featIdToProgId
-              .getOrElseUpdate("minimal", MMap.empty)
-              .getOrElseUpdate("minimal", (script, stepCnt))
-
-            featIdToProgId
-              .getOrElseUpdate("", MMap.empty)
-              .getOrElseUpdate("", (script, stepCnt))
-        nodeIdToProgId += (node.id -> featIdToProgId)
     }
 
-    progIdSet.foreach { progId =>
-      val codeWithOutUseStrict = readFile(s"$RECENT_DIR/minimal/$progId.js")
-        .trim()
-        .replace("\"use strict\";\n", "")
+    for (progId <- progIdSet) do
+      val codeWithOutUseStrict = readFile(
+        s"$RECENT_DIR/minimal/$progId.js",
+      ).trimCode
       dumpJson(
         name = s"progIdToScript for $progId",
         data = codeWithOutUseStrict,
         filename = s"$DUMP_VISUALIZER_LOG_DIR/progIdToScript/${progId}.json",
         silent = true,
       )
-    }
 
-    nodeIdToProgId.foreach {
-      case (nodeId, featIdToProgId) =>
-        dumpJson(
-          name = s"nodeIdToProgId for $nodeId",
-          data = featIdToProgId,
-          filename = s"$DUMP_VISUALIZER_LOG_DIR/nodeIdToProgId/${nodeId}.json",
-          silent = true,
-        )
-    }
-
-  val RECENT_DIR = s"$FUZZ_LOG_DIR/recent"
+    for ((nodeId, featIdToProgId) <- nodeIdToProgId) do
+      dumpJson(
+        name = s"nodeIdToProgId for $nodeId",
+        data = featIdToProgId,
+        filename = s"$DUMP_VISUALIZER_LOG_DIR/nodeIdToProgId/${nodeId}.json",
+        silent = true,
+      )
 }
