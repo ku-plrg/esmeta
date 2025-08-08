@@ -153,6 +153,7 @@ class CaseCollector extends UnitWalker {
         s"set fields of {{ ref }} with the values listed in ..."
       case PerformBlockStep(block, desc) =>
         s"perform the following substeps in an implementation-defined order ..."
+      case EarlyErrorRuleStep(decls) => s"TODO"
     })
     super.walk(step)
   }

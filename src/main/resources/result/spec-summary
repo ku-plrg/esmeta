@@ -5,14 +5,14 @@
     - numeric string: 16
     - syntactic: 198
   - extended productions for web: 29
-- algorithms: 2909
-  - complete: 2519 (86.59%)
-  - equals: 2693 (92.57%)
-- algorithm steps: 22857
-  - complete: 22101 (96.69%)
-- types: 8381
-  - known: 7485 (89.31%)
-  - yet: 209 (2.49%)
+- algorithms: 3005
+  - complete: 2557 (85.09%)
+  - equals: 2693 (89.62%)
+- algorithm steps: 22953
+  - complete: 22139 (96.45%)
+- types: 8573
+  - known: 7581 (88.43%)
+  - yet: 209 (2.44%)
 - tables: 95
 - type model: 113
 - intrinsics: 102

@@ -510,7 +510,34 @@ class Compiler(
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
+    case EarlyErrorRuleStep(decls) =>
+      decls.foreach(compile(fb, _))
+      val (y, yExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        ICall(y, EClo("NormalCompletion", Nil), List(EENUM_UNUSED)),
+        IReturn(yExpr),
+      )
   })
+
+  def compile(fb: FuncBuilder, earlyErrorRule: EarlyErrorRule): Unit =
+    val (x, xExpr) = fb.newTIdWithExpr
+    fb.addInst(
+      IIf(
+        earlyErrorRule match {
+          case YetRule(yet)             => EYet(yet.toString(true, false))
+          case SyntaxErrorRule(cond, _) => compile(fb, cond)
+          case MustCoverRule(covering, covered) =>
+            EParse(compile(fb, covering), compile(fb, covered))
+        },
+        ISeq(
+          List(
+            ICall(x, EClo("ThrowCompletion", Nil), List(EUndef())),
+            IReturn(xExpr),
+          ),
+        ),
+        emptyInst,
+      ),
+    )
 
   /** compile local variable */
   def compile(x: Variable): Name = Name(x.name)

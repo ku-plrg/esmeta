@@ -106,6 +106,9 @@ case object Extract extends Phase[Unit, Spec] {
         "yet-types" -> spec.yetTypes
           .map(_.toString)
           .sorted,
+        "yet-rules" -> spec.yetRules
+          .map(_.toString(detail = false, location = false))
+          .sorted,
       ),
       filename = s"$EXTRACT_LOG_DIR/yets.json",
     )

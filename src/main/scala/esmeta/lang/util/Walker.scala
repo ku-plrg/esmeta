@@ -128,7 +128,18 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
+    case EarlyErrorRuleStep(decls) => EarlyErrorRuleStep(walkList(decls, walk))
   }
+
+  def walk(earlyErrorRule: EarlyErrorRule): EarlyErrorRule =
+    earlyErrorRule match {
+      case SyntaxErrorRule(cond, early) =>
+        SyntaxErrorRule(walk(cond), walk(early))
+      case MustCoverRule(covering, covered) =>
+        MustCoverRule(walk(covering), walk(covered))
+      case YetRule(yet) =>
+        YetRule(walk(yet))
+    }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =
     import RemoveStep.Target.*

@@ -338,6 +338,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[BlockStep] = deriveEncoderWithType
   given Decoder[YetStep] = deriveDecoderWithType
   given Encoder[YetStep] = deriveEncoderWithType
+  given Decoder[EarlyErrorRule] = deriveDecoderWithType
+  given Encoder[EarlyErrorRule] = deriveEncoderWithType
   given Decoder[Step] = deriveDecoderWithType
   given Encoder[Step] = deriveEncoderWithType
 

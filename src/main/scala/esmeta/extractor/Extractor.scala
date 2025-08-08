@@ -7,10 +7,12 @@ import esmeta.lang.{util => LangUtil}
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
+import esmeta.util.BaseUtils.*
 import esmeta.util.ManualInfo
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
+import esmeta.error.ESMetaError
 
 /** specification extractor from ECMA-262 */
 object Extractor:
@@ -112,7 +114,38 @@ class Extractor(
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => extractAlgorithm(elem)
 
-    concurrent(manualJobs ++ jobs).toList.flatten
+    // extract early error static semantics jobs
+    val staticSemanticJobs = for {
+      clause <- document.getElems(
+        """emu-clause[id$="-early-errors"]:not([example])""",
+      )
+      ul <- clause.getElems("emu-grammar + ul")
+      grammar = ul.getPrevElem
+    } yield () => extractStaticSemanticsAsAlgorithm(clause, grammar, ul)
+
+    // concurrent(manualJobs ++ jobs ++ staticSemanticJobs).toList.flatten
+    (manualJobs ++ jobs ++ staticSemanticJobs).map(_()).toList.flatten
+
+  /** extracts an algorithm */
+  def extractStaticSemanticsAsAlgorithm(
+    clause: Element,
+    grammar: Element,
+    ul: Element,
+  ): List[Algorithm] =
+    val head = extractSdoHead(clause, ul)
+    val baseCode = ul.html.unescapeHtml
+    try {
+      val body = parser.parseBy(parser.earlyErrorRuleStep)(baseCode)
+      // TODO : handle list
+      val algo = Algorithm(head.head, body, baseCode)
+      List(algo)
+    } catch {
+      case e: ESMetaError =>
+        warn(
+          s"Error extracting static semantics algorithm: ${e.getMessage}, body = $baseCode",
+        )
+        Nil
+    }
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] =

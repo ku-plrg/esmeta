@@ -97,6 +97,13 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
+    case EarlyErrorRuleStep(decls) => walkList(decls, walk)
+  }
+
+  def walk(earlyErrorRule: EarlyErrorRule): Unit = earlyErrorRule match {
+    case SyntaxErrorRule(cond, early)     => walk(cond); walk(early)
+    case MustCoverRule(covering, covered) => walk(covering); walk(covered)
+    case YetRule(yet)                     => walk(yet)
   }
 
   def walk(target: RemoveStep.Target): Unit =

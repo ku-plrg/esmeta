@@ -590,6 +590,8 @@ trait Parsers extends IndentParsers {
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
     exists("the") <~ "*this* value" ^^ { ThisLiteral(_) } |
     "this Parse Node" ^^! ThisParseNodeLiteral(None) |
+    // TODO print as this production
+    "this production" ^^! ThisParseNodeLiteral(None) |
     "this" ~> ntLiteral ^^ { case nt => ThisParseNodeLiteral(Some(nt)) } |
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
@@ -1023,7 +1025,7 @@ trait Parsers extends IndentParsers {
       "a break completion" ^^^ Break |
       "a continue completion" ^^^ Continue |
       "never an abrupt completion" ^^^ NeverAbrupt |
-      "duplicate entries" ^^^ Duplicated |
+      ("duplicate entries" | "duplicate elements") ^^^ Duplicated |
       "present" ^^^ Present |
       ("empty" | "an empty List") ^^^ Empty |
       "strict mode code" ^^^ StrictMode |
@@ -1179,12 +1181,73 @@ trait Parsers extends IndentParsers {
     // PropertyDefinitionEvaluation
     // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
-  } ^^! getExprCond(FalseLiteral())
+  } ^^! getExprCond(FalseLiteral()) | {
+    // Early Error Rules
+    "any source text is matched by this production"
+  } ^^! getExprCond(TrueLiteral())
 
   // not yet supported conditions
   def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
     val s = str.stripSuffix(post)
     ExpressionCondition(YetExpression(s, None))
+  }
+
+  // ---------------------------------------------------------------------------
+  // metalanguage early error static semantics
+  // ---------------------------------------------------------------------------
+  lazy val earlyErrorRuleStep: PL[EarlyErrorRuleStep] =
+    indent ~> (rep1(ee) ^^ { (steps: List[EarlyErrorRule]) =>
+      EarlyErrorRuleStep(steps)
+    }) <~ dedent
+
+  lazy val ee: PL[EarlyErrorRule] = (next ~> (singleLi | multiLiOuter))
+
+  lazy val singleLi: PL[EarlyErrorRule] =
+    ("<li>" ~> "(?:(?!</li>).)+".r <~ "</li>") ^^ { raw =>
+      // raw는 <li>와 </li> 사이의 내용
+      parseAll(earlyErrorRule, raw) match {
+        case Success(result, _) => result
+        case _ => YetRule(YetExpression(raw, None)) // 실패시 fallback
+      }
+    }
+
+  // 여러 줄 <li> ... </li>
+  lazy val multiLiOuter: P[EarlyErrorRule] = "<li>" ~> multiLiInner <~ "</li>"
+
+  lazy val multiLiInner: P[EarlyErrorRule] =
+    indent ~> // (개행을 보며 indent 스택 push, 입력은 그대로)
+    next ~> // 실제로 개행+공백 소비, 본문 첫 글자 위치로 이동
+    ((earlyErrorRule | anythingSingle) <~ guard(
+      EOL,
+    )) <~ // 본문 1줄 파싱 (guard(EOL)로 줄 끝 직전까지)
+    dedent <~ // (개행을 보며 indent 스택 pop, 입력은 그대로)
+    next // 실제로 개행+공백 소비, </li> 줄의 시작으로 이동
+
+  lazy val anythingSingle: PL[YetRule] = // (step <~ guard(EOL) | yetStep)
+    ".+".r ^^ { s =>
+      YetRule(YetExpression(s, None))
+    }
+
+  lazy val earlyErrorRule = {
+
+    lazy val itIsASyntaxError: PL[SyntaxErrorRule] = {
+      ("It is" ~> ("an early" ^^^ true | "a" ^^^ false) <~ "Syntax Error") ~
+      ("if" ~> (cond | yetCond(".")) <~ ".") ^^ {
+        case early ~ cond =>
+          SyntaxErrorRule(
+            cond,
+            early,
+          )
+      }
+    }
+
+    lazy val mustCover: PL[MustCoverRule] = {
+      (literal) ~ ("must cover" ~> ("an" | "a") ~> literal <~ ".") ^^ {
+        case n ~ c => MustCoverRule(c, n)
+      }
+    }
+
+    (itIsASyntaxError | mustCover)
   }
 
   // ---------------------------------------------------------------------------

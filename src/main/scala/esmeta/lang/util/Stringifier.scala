@@ -32,14 +32,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // syntax
   given syntaxRule: Rule[Syntax] = (app, syn) =>
     syn match {
-      case syn: Block      => blockRule(app, syn)
-      case syn: Step       => stepRule(app, syn)
-      case syn: SubStep    => subStepRule(app, syn)
-      case syn: Expression => exprRule(app, syn)
-      case syn: Condition  => condRule(app, syn)
-      case syn: Reference  => refRule(app, syn)
-      case syn: Type       => typeRule(app, syn)
-      case syn: Intrinsic  => intrRule(app, syn)
+      case syn: Block          => blockRule(app, syn)
+      case syn: Step           => stepRule(app, syn)
+      case syn: SubStep        => subStepRule(app, syn)
+      case syn: Expression     => exprRule(app, syn)
+      case syn: Condition      => condRule(app, syn)
+      case syn: Reference      => refRule(app, syn)
+      case syn: Type           => typeRule(app, syn)
+      case syn: Intrinsic      => intrRule(app, syn)
+      case syn: EarlyErrorRule => earlyErrorRuleRule(app, syn)
     }
 
   // blocks
@@ -239,9 +240,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
+      case EarlyErrorRuleStep(decls) =>
+        app >> "TODO"
+        decls.foreach(app >> _)
+        app
     }
     app >> step.endString
   }
+
+  given earlyErrorRuleRule: Rule[EarlyErrorRule] = (app, decl) =>
+    decl match {
+      case YetRule(yet) =>
+        app >> "YET:" >> yet
+      case SyntaxErrorRule(cond, early) =>
+        app >> "ITIS:" >> "It is " >> (if (early) "an early" else "a")
+        >> " Syntax Error if " >> cond >> "."
+      case MustCoverRule(covering, covered) =>
+        // TODO use a/an based on name
+        app >> "MUSTCOVER:" >> covering >> " must cover " >> "a" >> covered >> "."
+    }
 
   given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
     import RemoveStep.Target
