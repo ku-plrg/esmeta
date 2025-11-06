@@ -262,11 +262,56 @@ object SystemUtils {
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined
 
   /** execute shell command with given dir, default to CUR_DIR */
-  def executeCmd(cmd: String, dir: String = CUR_DIR): String =
+  def executeCmd(
+    cmd: String,
+    dir: String = CUR_DIR,
+  ): String =
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
     val sb = new StringBuilder
     process !! ProcessLogger(s => (), s => ())
+
+  def executeCmdTimeout(
+    cmd: String,
+    duration: FiniteDuration,
+    dir: String = CUR_DIR,
+  ): Option[(String, String)] = {
+    val out = new StringBuilder
+    val err = new StringBuilder
+    val processBuilder = Process(Seq("sh", "-c", cmd), new File(dir))
+    val process =
+      processBuilder.run(
+        ProcessLogger(
+          s => out.append(s).append("\n"),
+          s => err.append(s).append("\n"),
+        ),
+      )
+    val future = Future {
+      process.exitValue() // waits for completion
+    }
+    try
+      Await.result(future, duration)
+      Some(out.toString() -> err.toString())
+    catch
+      case _: TimeoutException =>
+        process.destroy() // terminate process
+        None
+  }
+
+  /** execute shell command with given dir, default to CUR_DIR */
+  def executeCmdNonZero(
+    cmd: String,
+    dir: String = CUR_DIR,
+  ): (Int, String, String) =
+    var directory = File(dir)
+    var process = Process(Seq("sh", "-c", cmd), directory)
+    val out = new StringBuilder
+    val err = new StringBuilder
+    val code = process ! ProcessLogger(
+      s => out.append(s).append("\n"),
+      s => err.append(s).append("\n"),
+    )
+    (code, out.toString(), err.toString())
 
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Int]): T =

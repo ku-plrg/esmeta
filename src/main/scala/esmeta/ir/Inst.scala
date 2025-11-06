@@ -22,6 +22,7 @@ case class IPush(elem: Expr, list: Expr, front: Boolean) extends NormalInst
 case class IPop(lhs: Local, list: Expr, front: Boolean) extends NormalInst
 case class IReturn(expr: Expr) extends NormalInst with Return
 case class IAssert(expr: Expr) extends NormalInst
+case class ITrace(es: List[Expr]) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
 object NormalInsts extends Parser.From(Parser.normalInsts)

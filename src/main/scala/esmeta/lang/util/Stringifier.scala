@@ -643,6 +643,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // metalanguage invocation expressions
   given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
     expr match {
+      case InvokeTracerExpression(args) =>
+        given Rule[(Boolean, Expression)] = {
+          case (app, (isNamed, expr)) =>
+            if (isNamed) app >> "returning "
+            app >> expr
+        }
+        given Rule[Iterable[(Boolean, Expression)]] =
+          iterableRule("(", ", ", ")")
+        app >> "@@Trace" >> args
       case InvokeAbstractOperationExpression(name, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         tagEffect(app, tag)(app >> name, app >> args)

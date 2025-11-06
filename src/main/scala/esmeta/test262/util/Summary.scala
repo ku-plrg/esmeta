@@ -29,12 +29,17 @@ case class Summary(
   def passCount: Int = pass.size
 
   /** dump results */
-  def dumpTo(baseDir: String): Unit =
+  def dumpTo(baseDir: String, silent: Boolean = false): Unit =
     if (!notSupported.isEmpty)
-      notSupported.dumpTo("not-supported", s"$baseDir/not-supported.json")
-    if (!timeout.isEmpty) timeout.dumpTo("timeout", s"$baseDir/timeout.json")
-    if (!fail.isEmpty) fail.dumpTo("fail", s"$baseDir/fail.json")
-    if (!pass.isEmpty) pass.dumpTo("pass", s"$baseDir/pass.json")
+      notSupported.dumpTo(
+        "not-supported",
+        s"$baseDir/not-supported.json",
+        silent,
+      )
+    if (!timeout.isEmpty)
+      timeout.dumpTo("timeout", s"$baseDir/timeout.json", silent)
+    if (!fail.isEmpty) fail.dumpTo("fail", s"$baseDir/fail.json", silent)
+    if (!pass.isEmpty) pass.dumpTo("pass", s"$baseDir/pass.json", silent)
 
   /** time */
   var time: Time = Time()
@@ -137,12 +142,14 @@ object Summary {
         map.getOrElseUpdate(reason, Elem()).add(data, remain)
 
     /** dump results */
-    def dumpTo(name: String, filename: String): Unit = dumpJson(
-      name = s"$name cases",
-      data = toJson,
-      filename = filename,
-      noSpace = false,
-    )
+    def dumpTo(name: String, filename: String, silent: Boolean = false): Unit =
+      dumpJson(
+        name = s"$name cases",
+        data = toJson,
+        filename = filename,
+        noSpace = false,
+        silent = silent,
+      )
 
     /** conversion to JSON */
     def toJson: Json =

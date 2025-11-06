@@ -89,6 +89,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "push "
         if (front) app >> from >> " > " >> to
         else app >> to >> " < " >> from
+      case ITrace(es) =>
+        given Rule[List[Expr]] = iterableRule("", ", ", "")
+        app >> "trace " >> es
       case IPop(lhs, list, front) =>
         app >> "pop "
         if (front) app >> lhs >> " < " >> list

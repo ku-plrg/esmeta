@@ -106,6 +106,10 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 sealed trait InvokeExpression extends Expression
 
+case class InvokeTracerExpression(
+  args: List[(Boolean, Expression)],
+) extends InvokeExpression
+
 enum HtmlTag:
   case None
   case BeforeCall(c: String)

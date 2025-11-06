@@ -281,6 +281,8 @@ trait Walker extends BasicWalker {
   def walk(flit: FieldLiteral): FieldLiteral = flit
 
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
+    case InvokeTracerExpression(args) =>
+      InvokeTracerExpression(args.map { case (b, e) => (walk(b), walk(e)) })
     case InvokeAbstractOperationExpression(name, args, tag) =>
       InvokeAbstractOperationExpression(name, walkList(args, walk), tag)
     case InvokeNumericMethodExpression(ty, name, args) =>

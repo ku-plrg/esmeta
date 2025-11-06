@@ -606,6 +606,19 @@ class Compiler(
         xExpr
       case expr: GetItemsExpression =>
         EYet(expr.toString(true, false))
+      case InvokeTracerExpression(args) =>
+        val evaled = args.map { (isHook, arg) =>
+          val (x, xExpr) = fb.newTIdWithExpr
+          fb.addInst(IAssign(x, compile(fb, arg)))
+          (isHook, xExpr)
+        }
+        val passValue = evaled.filter(_._1) match
+          case Nil           => EUndef()
+          case (_, h) :: Nil => h
+          case _ =>
+            raise("InvokeTracerExpression should have at most one pass value")
+        fb.addInst(ITrace(evaled.map(_._2)))
+        passValue
       case InvokeAbstractOperationExpression(name, args, _) =>
         val as = args.map(compile(fb, _))
         if (simpleOps contains name) simpleOps(name)(fb, as)

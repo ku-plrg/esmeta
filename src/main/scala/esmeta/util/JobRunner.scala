@@ -32,9 +32,10 @@ abstract class JobRunner[T, U](
   def tick: Unit = ()
 
   private def printProgress: Unit = {
+    val totalSizeSafe = if (totalSize == 0) 1 else totalSize
     val c = count.get
-    val percent = c.toDouble / totalSize * 100
-    val len = c * BAR_LEN / totalSize
+    val percent = c.toDouble / totalSizeSafe * 100
+    val len = c * BAR_LEN / totalSizeSafe
     val bars = (BAR * len) + (" " * (BAR_LEN - len))
     val msg =
       f"[$bars] $percent%2.2f%% ($c%,d/$totalSize%,d)$barPostfix"

@@ -234,6 +234,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(lit: Literal): Unit = {}
 
   def walk(invoke: InvokeExpression): Unit = invoke match {
+    case InvokeTracerExpression(args) =>
+      args.foreach { case (b, e) => walk(b); walk(e) }
     case InvokeAbstractOperationExpression(name, args, tag) =>
       walkList(args, walk)
     case InvokeNumericMethodExpression(ty, name, args) =>

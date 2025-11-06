@@ -134,6 +134,11 @@ lazy val test262ParseTest =
 lazy val test262EvalTest =
   taskKey[Unit]("Launch eval tests for Test262 (large)")
 
+// tracer (da-test)
+lazy val tracerIgnoreFullTest = taskKey[Unit]("Launch tracer ignore full tests")
+lazy val tracerIgnoreJalangiTest =
+  taskKey[Unit]("Launch tracer ignore jalangi tests")
+
 // Java options for assembly
 lazy val assemblyJavaOpts = Seq(
   "-Xms1g",
@@ -292,6 +297,13 @@ lazy val root = project
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
+    // tracer ignore tests
+    tracerIgnoreFullTest := (Test / testOnly)
+      .toTask(" *.tracer.TracerIgnoreFullTest")
+      .value,
+    tracerIgnoreJalangiTest := (Test / testOnly)
+      .toTask(" *.tracer.TracerIgnoreJalangiTest")
+      .value,
   )
 
 // create the `.completion` file for autocompletion in shell

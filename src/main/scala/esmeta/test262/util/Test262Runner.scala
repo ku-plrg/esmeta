@@ -19,7 +19,7 @@ abstract class Test262Runner(
     showProgressBar = showProgressBar,
   ) {
 
-  lazy val getName: (Test, Int) => String
+  lazy val elemize: (Test, Int) => String
 
   override lazy val countBase = notSupported.size
 
@@ -27,7 +27,7 @@ abstract class Test262Runner(
   lazy val summary =
     val elem = Summary.Elem()
     for { ((x, reasonPath), idx) <- notSupported.zipWithIndex }
-      elem.add(getName(x, idx), reasonPath)
+      elem.add(elemize(x, idx), reasonPath)
     Summary(notSupported = elem)
 
   def runTest(t: Test): Unit
@@ -35,11 +35,11 @@ abstract class Test262Runner(
   override def tick: Unit = summary.time = elapsedTime
 
   final def job(t: Test, idx: Int): Unit = {
-    val name = getName(t, idx)
+    val name = elemize(t, idx)
     getError {
       runTest(t)
       summary.pass.add(name)
-    }.map(errorHandler(_, summary, name))
+    }.map(errorHandler(_, summary, name, t))
   }
 
   def postJob: Summary = summary
@@ -48,6 +48,7 @@ abstract class Test262Runner(
     error: Throwable,
     summary: Summary,
     name: String,
+    test: Test,
   ): Unit = summary.fail.add(name)
 
   /* postfix for summary */

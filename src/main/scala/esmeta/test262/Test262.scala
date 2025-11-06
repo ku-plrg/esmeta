@@ -153,7 +153,7 @@ object Test262 extends Git(TEST262_DIR) {
       detail = detail,
     ) {
 
-      override lazy val getName = (test, _) => test.relName
+      override lazy val elemize = (test, _) => test.relName
 
       val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
 
@@ -164,6 +164,7 @@ object Test262 extends Git(TEST262_DIR) {
         error: Throwable,
         summary: Summary,
         name: String,
+        test: Test,
       ): Unit =
         if (multiple) error match
           case NotSupported(reasons) =>
@@ -256,7 +257,7 @@ object Test262 extends Git(TEST262_DIR) {
       detail = false,
     ) {
 
-      override lazy val getName = (test, _) => test.relName
+      override lazy val elemize = (test, _) => test.relName
 
       private lazy val scriptParser = test262.cfg.scriptParser
       private def parse(code: String): Test262#Code =

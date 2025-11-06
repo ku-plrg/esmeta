@@ -149,6 +149,7 @@ class Interpreter(
         case None             => /* skip not yet compiled assertions */
         case Some(Bool(true)) =>
         case v                => throw AssertionFail(expr)
+    case _: ITrace => /* do nothing in standard interpreter */
     case IPrint(expr) =>
       val v = eval(expr)
       if (!TEST_MODE) println(st.getString(v))

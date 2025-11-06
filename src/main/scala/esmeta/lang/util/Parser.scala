@@ -759,6 +759,7 @@ trait Parsers extends IndentParsers {
 
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
+    invokeTraceExpr |
     invokeAOExpr |
     invokeNumericExpr |
     invokeClosureExpr |
@@ -782,6 +783,15 @@ trait Parsers extends IndentParsers {
 
   // arguments for invocation epxressions
   lazy val invokeArgs: P[List[Expression]] = ("(" ~> repsep(expr, ",") <~ ")")
+
+  lazy val invokeTraceExpr: PL[InvokeTracerExpression] =
+    lazy val passingThrough: P[Boolean] = opt("returning") ^^ { _.isDefined }
+    lazy val singleArg: P[(Boolean, Expression)] = passingThrough ~ expr ^^ {
+      case p ~ e => (p, e)
+    }
+    lazy val invokeArgsWithOpt: P[List[(Boolean, Expression)]] =
+      ("(" ~> repsep(singleArg, ",") <~ ")")
+    "@@Trace" ~> invokeArgsWithOpt ^^ { InvokeTracerExpression(_) }
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =

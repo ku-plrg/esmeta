@@ -324,6 +324,7 @@ class CaseCollector extends UnitWalker {
         s"$op ..."
       case BitwiseExpression(left, op, right) =>
         s"the result of applying the $op to {{ expr }} and {{ expr }}"
+      case InvokeTracerExpression(args) => s"@@trace({{ expr }}*)"
       case InvokeAbstractOperationExpression(name, args, tag) =>
         tag match
           case HtmlTag.None => s"{{ str }}({{ expr }}*)"

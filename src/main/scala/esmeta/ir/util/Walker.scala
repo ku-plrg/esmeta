@@ -56,6 +56,7 @@ trait Walker extends BasicWalker {
     case IPop(lhs, list, front) => IPop(walk(lhs), walk(list), walk(front))
     case IReturn(expr)          => IReturn(walk(expr))
     case IAssert(expr)          => IAssert(walk(expr))
+    case ITrace(es)             => ITrace(walkList(es, walk))
     case IPrint(expr)           => IPrint(walk(expr))
     case INop()                 => INop()
     case ISeq(insts)            => ISeq(walkList(insts, walk))
