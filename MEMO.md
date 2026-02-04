@@ -91,3 +91,38 @@ Node.js에서 실패하는 test262를 제외하도록 했더니 실패 케이스
   // nodeprof는 빌트인에 대해서 getField를 정확(internal)하게 뽑아주나?
 }
 ```
+
+# 20251203
+
+literal + unary, unaryPre + functionEnter, functionExit
+
+++에 대한 처리 때문에 진짜 횟수가 다르네:
+
+```js
+// define getter and setter for 'x' to global object
+
+var readCount = 0;
+var writeCount = 0;
+var xValue = 0;
+
+Object.defineProperty(globalThis, 'x', {
+  get: function () {
+    readCount++;
+    return xValue;
+  },
+  set: function (value) {
+    writeCount++;
+    xValue = value;
+  },
+});
+
+
+x++;
+
+console.log('Final read count: ' + readCount);
+console.log('Final write count: ' + writeCount);
+```
+
+---
+
+++에 대한 desugaring 때문에 literal에 대해 읽는 횟수가 달라짐 - 버그라고 할 수 있나, 깔끔하게 처리는 어떻게 하지...
