@@ -6,8 +6,9 @@ import esmeta.util.Appender.Rule
 class Stringifier {
   private def traceWithLoc(trace: Trace): String =
     trace.loc match
-      case Some(loc) => s"${trace.toString()} (${loc.start.line}-${loc.end.line})"
-      case None      => trace.toString()
+      case Some(loc) =>
+        s"${trace.toString()} (${loc.start.line}-${loc.end.line})"
+      case None => trace.toString()
 
   given elemRule: Rule[TracerElem] = (app, elem) => {
     elem match
@@ -24,18 +25,18 @@ class Stringifier {
           case (node, idx) =>
             val isLast = idx == nodes.size - 1
             val connector = if (isLast) "`- " else "|- "
-              sb.append(prefix)
-                .append(connector)
-                .append(traceWithLoc(node.open))
-                .append("\n")
+            sb.append(prefix)
+              .append(connector)
+              .append(traceWithLoc(node.open))
+              .append("\n")
             val nextPrefix = prefix + (if (isLast) "   " else "|  ")
             render(node.children, nextPrefix)
             node.close.foreach { t =>
-                sb.append(prefix)
-                  .append(connector)
-                  .append(" ")
-                  .append(traceWithLoc(t))
-                  .append("\n")
+              sb.append(prefix)
+                .append(connector)
+                .append(" ")
+                .append(traceWithLoc(t))
+                .append("\n")
             }
         }
       }

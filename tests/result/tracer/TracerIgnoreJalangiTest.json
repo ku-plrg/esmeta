@@ -14,7 +14,7 @@
   "invoke-indirect-complex-2" : true,
   "invoke-indirect-complex-3" : true,
   "invoke-indirect-complex-4" : true,
-  "invoke-indirect-complex-5" : false,
+  "invoke-indirect-complex-5" : true,
   "invoke-indirect-getfield" : true,
   "invoke-throw" : true,
   "invoke-throw-builtin" : true,

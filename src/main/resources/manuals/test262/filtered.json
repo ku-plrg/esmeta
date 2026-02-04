@@ -305,5 +305,30 @@
     "built-ins/String/prototype/split/cstm-split-on-boolean-primitive",
     "built-ins/String/prototype/split/cstm-split-on-number-primitive",
     "built-ins/String/prototype/split/cstm-split-on-string-primitive"
+  ],
+  "manually opt-out": [
+    "built-ins/Error/prototype/S15.11.3.1_A2_T1",
+    "built-ins/Object/create/15.2.3.5-4-14",
+    "built-ins/Object/create/15.2.3.5-4-37",
+    "built-ins/Object/defineProperty/15.2.3.6-3-228-1",
+    "built-ins/Object/defineProperty/15.2.3.6-3-258-1",
+    "built-ins/Object/getOwnPropertyNames/15.2.3.4-2-4",
+    "built-ins/Object/getOwnPropertyNames/S15.2.3.4_A1_T1",
+    "built-ins/Object/prototype/valueOf/S15.2.4.4_A14",
+    "built-ins/eval/no-construct",
+    "language/block-scope/syntax/redeclaration-global/allowed-to-redeclare-function-declaration-with-var",
+    "language/block-scope/syntax/redeclaration-global/allowed-to-redeclare-var-with-function-declaration",
+    "language/expressions/addition/S11.6.1_A3.2_T1.2",
+    "language/expressions/postfix-decrement/S11.3.2_A4_T2",
+    "language/expressions/postfix-increment/S11.3.1_A4_T2",
+    "language/function-code/S10.2.1_A4_T2",
+    "language/reserved-words/unreserved-words",
+    "language/statements/for-in/scope-body-var-none",
+    "language/statements/function/S13.2.1_A6_T3",
+    "language/statements/function/S13.2.2_A8_T3",
+    "language/statements/function/S13_A19_T2",
+    "language/statements/function/S13_A19_T1",
+    "language/types/object/S8.6_A2_T1",
+    "language/types/object/S8.6_A3_T1"
   ]
 }

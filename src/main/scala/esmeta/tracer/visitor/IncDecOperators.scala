@@ -49,14 +49,14 @@ final class IncDecOperators extends TreeVisitor {
         left.open match
           case Trace.UnaryPre("prefix++" | "prefix--") =>
             Some("<unused>")
-            // children match
-            //   case Vector(
-            //         DiffNode(DiffTag.LeftOnly, Some(childLeft), None, _, _),
-            //       ) =>
-            //     childLeft.open match
-            //       case Trace.Write(name) => Some(name)
-            //       case _                 => None
-            //   case _ => None
+          // children match
+          //   case Vector(
+          //         DiffNode(DiffTag.LeftOnly, Some(childLeft), None, _, _),
+          //       ) =>
+          //     childLeft.open match
+          //       case Trace.Write(name) => Some(name)
+          //       case _                 => None
+          //   case _ => None
           case _ => None
       case _ => None
 
@@ -65,14 +65,14 @@ final class IncDecOperators extends TreeVisitor {
         left.open match
           case Trace.UnaryPre("postfix++" | "postfix--") =>
             Some("<unused>")
-            // children match
-            //   case Vector(
-            //         DiffNode(DiffTag.LeftOnly, Some(childLeft), None, _, _),
-            //       ) =>
-            //     childLeft.open match
-            //       case Trace.Write(name) => Some(name)
-            //       case _                 => None
-            //   case _ => None
+          // children match
+          //   case Vector(
+          //         DiffNode(DiffTag.LeftOnly, Some(childLeft), None, _, _),
+          //       ) =>
+          //     childLeft.open match
+          //       case Trace.Write(name) => Some(name)
+          //       case _                 => None
+          //   case _ => None
           case _ => None
       case _ => None
 

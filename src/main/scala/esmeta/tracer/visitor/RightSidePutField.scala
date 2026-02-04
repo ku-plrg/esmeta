@@ -3,8 +3,7 @@ package visitor
 
 import TraceDiff.*
 
-/**
-  * TODO putfiled 시점 문제로 인해 실패한 경우도 기록에 남게 됨 - 근데 이건 오라클 문제에 가까워서 명세 후킹을  수정해야할듯.
+/** TODO putfiled 시점 문제로 인해 실패한 경우도 기록에 남게 됨 - 근데 이건 오라클 문제에 가까워서 명세 후킹을 수정해야할듯.
   */
 final class RightSidePutField extends TreeVisitor {
   def onNode(

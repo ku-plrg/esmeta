@@ -2215,7 +2215,6 @@ Record[ProxyExoticObject].HasProperty
 Record[ProxyExoticObject].IsExtensible
 Record[ProxyExoticObject].OwnPropertyKeys
 Record[ProxyExoticObject].PreventExtensions
-Record[ProxyExoticObject].Set
 Record[ProxyExoticObject].SetPrototypeOf
 Record[StringExoticObject].DefineOwnProperty
 Record[StringExoticObject].GetOwnProperty
@@ -2231,7 +2230,6 @@ Record[TypedArray].Get
 Record[TypedArray].GetOwnProperty
 Record[TypedArray].HasProperty
 Record[TypedArray].PreventExtensions
-Record[TypedArray].Set
 RegExpAlloc
 RegExpCreate
 RegExpExec
@@ -2553,7 +2551,6 @@ UnaryExpression[2,0].Evaluation
 UnaryExpression[2,0].HasCallInTailPosition
 UnaryExpression[2,0].IsFunctionDefinition
 UnaryExpression[3,0].AssignmentTargetType
-UnaryExpression[3,0].Evaluation
 UnaryExpression[3,0].HasCallInTailPosition
 UnaryExpression[3,0].IsFunctionDefinition
 UnaryExpression[4,0].AssignmentTargetType

@@ -130,12 +130,14 @@ final class SuppressInternalOperationWithFE(using tk: TargetKind)
       val leftSeq = leftNodes.result()
       val rightSeq = rightFEs.result()
       if (rightSeq.nonEmpty && rightSeq.size >= leftCount)
-        Some((
-          leftSeq,
-          rightSeq.take(leftCount),
-          skipped.result(),
-          consume,
-        ))
+        Some(
+          (
+            leftSeq,
+            rightSeq.take(leftCount),
+            skipped.result(),
+            consume,
+          ),
+        )
       else None
     }
 
