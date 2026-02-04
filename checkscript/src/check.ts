@@ -4,7 +4,9 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import { fileURLToPath } from 'url';
 import { resolveArgv } from './arg.util.js';
-import { containsTopLevelThis } from './check.this.js';
+import { checkUseStrictDirectiveAndThrow } from './check.strict.js';
+import { checkTopLevelThisAndThrow } from './check.this.js';
+import { checkSyntaxErrorAndThrow } from './check.syntax.js';
 
 type Flag = 'help' | 'version' | 'ast';
 
@@ -25,11 +27,12 @@ function printVersion(): void {
   console.log('unknown');
 }
 
-function parseES5(code: string): Program {
+export function parseES5(code: string): Program {
   try {
     return parse(code, { ecmaVersion: 5, sourceType: 'script', locations: true });
-  } catch {
+  } catch (err: unknown) {
     // emit error without details
+    console.error(err);
     throw new Error('Maybe not a valid ES5 script.');
   }
 }
@@ -59,8 +62,9 @@ export default async function main(argv: string[] = process.argv.slice(2)): Prom
 
   try {
     const ast = parseES5(code);
-    const contains = containsTopLevelThis(ast);
-    if (contains) throw new Error('Top-level "this" is not allowed in ES5 scripts.');
+    checkTopLevelThisAndThrow(ast);
+    checkUseStrictDirectiveAndThrow(ast);
+    checkSyntaxErrorAndThrow(ast);
     console.log('✔ parsed successfully');
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

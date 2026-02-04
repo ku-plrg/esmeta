@@ -1,21 +1,15 @@
 import type { Program } from "acorn";
 import * as walk from "acorn-walk";
 
-export function containsTopLevelThis(ast: Program): boolean {
+export function checkTopLevelThisAndThrow(ast: Program): void {
+  if (checkTopLevelThis(ast)) {
+    throw new Error('Top-level "this" is not allowed, (script-cjs diff).');
+  }
+}
+
+function checkTopLevelThis(ast: Program): boolean {
   let has = false;
-
-  // Tracks scopes that define their own `this`
-  // Program scope is the bottom of the stack and has no own `this`.
-  type Scope = { hasOwnThis: boolean };
-  const scopeStack: Scope[] = [{ hasOwnThis: false }];
-
-  function pushScope(hasOwnThis: boolean) {
-    scopeStack.push({ hasOwnThis });
-  }
-  function popScope() {
-    scopeStack.pop();
-  }
-
+  
   walk.ancestor<unknown>(ast, {
     ThisExpression(node, state, ancestors) {
 
