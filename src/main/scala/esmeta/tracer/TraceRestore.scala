@@ -25,4 +25,8 @@ object TraceRestore {
     } yield cached
     CachedTraceMetadata(traces)
   }
+
+  def clean(using workdir: WorkDir): Unit = {
+    rmdir(workdir.path)
+  }
 }

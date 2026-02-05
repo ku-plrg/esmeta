@@ -49,6 +49,15 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
         "skip-nodeprof option has no effect when collecting traces from cached trace files.",
       )
 
+    if (config.clean) {
+      TraceRestore.clean(using TRACER_WORKDIR)
+      warn("Cleaned the tracer working directory.")
+    } else if (!config.fromCache) {
+      warn(
+        "Existing cache in the tracer working directory will be used - this might affect result. To clean, use -collect-trace:clean",
+      )
+    }
+
     lazy val ((targetTests, removed), isTest262) =
       TraceDumper.computeTarget(targets)(using test262)
 
@@ -127,6 +136,11 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
       BoolOption((c, b) => c.fromCache = b),
       "collect traces from cached trace files instead of running tests.",
     ),
+    (
+      "clean",
+      BoolOption((c, b) => c.clean = b),
+      "clean the tracer working directory before collecting traces.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -139,5 +153,6 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
     //
     var nodeprof: Boolean = true,
     var fromCache: Boolean = false,
+    var clean: Boolean = false,
   )
 }
