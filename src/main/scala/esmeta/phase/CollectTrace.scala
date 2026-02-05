@@ -78,7 +78,7 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
     val missingAbs = targetTests.map(t => t.absPath).toSet -- restoredAbs
     if (missingAbs.nonEmpty) {
       warn(
-        s"Missing ${missingAbs.size} traces. This will be skipped. ${missingAbs.take(3).mkString(", ")}",
+        s"${missingAbs.size} traces not found. This might be due to (1) skipped nodeprof targets, (2) timeouts or errors during trace collection, (3) typo from target pathname, or (4) using from-cache option without existing cache files.",
       )
     }
 
