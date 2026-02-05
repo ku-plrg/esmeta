@@ -232,20 +232,24 @@ object TraceDiff {
 
   private def traceMatches(left: Trace, right: Trace): Boolean =
     (left, right) match
-      case (Trace.GetField(lprop, _, _), Trace.GetField(rprop, _, _)) =>
-        rprop == "<side effect>" || lprop == rprop
-      case (Trace.GetFieldPre(lprop, _, _), Trace.GetFieldPre(rprop, _, _)) =>
-        rprop == "<side effect>" || lprop == rprop
+      case (l: Trace.GetField, r: Trace.GetField) =>
+        l.prop == "<side effect>" || l.prop == r.prop
+      case (l: Trace.GetFieldPre, r: Trace.GetFieldPre) =>
+        r.prop == "<side effect>" || l.prop == r.prop
       case (a: Trace.PutField, b: Trace.PutField) =>
         b.prop == "<side effect>" || a.prop == b.prop
       case (a: Trace.PutFieldPre, b: Trace.PutFieldPre) =>
         b.prop == "<side effect>" || a.prop == b.prop
-      case (Trace.InvokeFun(lf, _), Trace.InvokeFun(rf, _)) =>
+      case (l: Trace.InvokeFun, r: Trace.InvokeFun) =>
         // jalangi incorrectly handles NamedEvaluation
-        rf == "" || lf == rf
-      case (Trace.InvokeFunPre(lf, _), Trace.InvokeFunPre(rf, _)) =>
+        r.f == "" || r.f == "bound " || l.f == r.f
+      case (l: Trace.InvokeFunPre, r: Trace.InvokeFunPre) =>
         // jalangi incorrectly handles NamedEvaluation
-        rf == "" || lf == rf
+        r.f == "" || r.f == "bound " || l.f == r.f
+      case (l: Trace.Binary, r: Trace.Binary) =>
+        l.op == r.op
+      case (u: Trace.Unary, v: Trace.Unary) =>
+        u.op == v.op
       case (_: Trace.FunctionEnter, Trace.FunctionEnter("")) =>
         true // jalangi incorrectly handles NamedEvaluation
       case (_: Trace.FunctionExit, Trace.FunctionExit("todo")) =>
@@ -282,11 +286,11 @@ object TraceDiff {
         )
       case Trace.UnaryPre("void") if side == Side.Left =>
         Some("void is not hooked in Jalangi")
-      case Trace.Unary("void") if side == Side.Left =>
+      case u: Trace.Unary if u.op == "void" && side == Side.Left =>
         Some("void is not hooked in Jalangi")
-      case Trace.InvokeFun(_, isInternal) if isInternal.contains(true) =>
+      case i: Trace.InvokeFun if i.isInternal.contains(true) =>
         Some("internal InvokeFun")
-      case Trace.InvokeFunPre(_, isInternal) if isInternal.contains(true) =>
+      case i: Trace.InvokeFunPre if i.isInternal.contains(true) =>
         Some("internal InvokeFunPre")
       case Trace.Read("eval") if side == Side.Left =>
         Some("eval is not hooked in right trace, so ignore in left trace")

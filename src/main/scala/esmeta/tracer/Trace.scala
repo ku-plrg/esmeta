@@ -10,7 +10,7 @@ enum Trace extends Locational {
   // Return,
   // Throw,
   // With,
-  case Binary(op: String)
+  case Binary(op: String, isThrown: Option[Boolean] = None)
   case BinaryPre(op: String)
   case Conditional(bool: Boolean)
   case Declare(name: String)
@@ -23,6 +23,7 @@ enum Trace extends Locational {
     prop: String,
     isInternal: Option[Boolean] = None,
     isGlobal: Option[Boolean] = None,
+    isThrown: Option[Boolean] = None,
   )
   case GetFieldPre(
     prop: String,
@@ -31,17 +32,21 @@ enum Trace extends Locational {
   )
   // InstrumentCode,
   // InstrumentCodePre,
-  case InvokeFun(f: String, isInternal: Option[Boolean] = None)
+  case InvokeFun(
+    f: String,
+    isInternal: Option[Boolean] = None,
+    isThrown: Option[Boolean] = None,
+  )
   case InvokeFunPre(f: String, isInternal: Option[Boolean] = None)
   case Literal(valueType: String)
   // OnReady,
-  case PutField(prop: String)
+  case PutField(prop: String, isThrown: Option[Boolean] = None)
   case PutFieldPre(prop: String)
   case Read(name: String)
   // RunInstrumentedFunctionBody,
   // ScriptEnter,
   // ScriptExit,
-  case Unary(op: String)
+  case Unary(op: String, isThrown: Option[Boolean] = None)
   case UnaryPre(op: String)
   case Write(name: String)
   case Print(text: String)

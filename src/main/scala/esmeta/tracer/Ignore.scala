@@ -17,13 +17,10 @@ object Ignore {
       GetFromGlobal().traverse >>>
       RightSideFunctionLiteral().traverse >>>
       RightSideDeclareThenFunctionLiteral().traverse >>>
-      RightSideNotCallable().traverse >>>
+      RightSideThrown().traverse >>>
       ReadEval().traverse >>>
       SuppressOperator().traverse >>>
       LiteralAsRead().traverse >>>
-      // PostfixPlus().traverse >>>
-      // PostfixMinus().traverse >>>
-      // PrefixMinus().traverse >>>
       SuppressInternalOperationWithFE().traverse >>>
       FirstDeclare().traverse >>>
       RightSidePutField().traverse >>>

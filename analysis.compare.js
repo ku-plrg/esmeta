@@ -2,6 +2,17 @@
 
     globalThis.__level = globalThis.__level ?? 0;
 
+    function noSideEffectStringify(val) {
+        switch (typeof val) {
+            case 'string':  return val;
+            case 'number':  return val.toString();
+            case 'boolean': return val.toString();
+            case 'undefined': return 'undefined';
+            case 'object': return val === null ? 'null' : '<object>';
+            case 'function': return '<function>';
+        }
+    }
+
     function stringify(val) {
         console.log(JSON.stringify(val));
     }
@@ -99,10 +110,10 @@
          * value that is returned by the actual function invocation.
          *
          */
-        invokeFun: function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid) {
+        invokeFun: function (iid, f, base, args, result, isConstructor, isMethod, functionIid, functionSid, __isThrown) {
             var isCallable = typeof f === 'function';
             var fname = isCallable ? f.name : '<not callable>';
-            stringify({ type: "invokeFun", f: fname, level: __level });
+            stringify({ type: "invokeFun", f: fname, level: __level, isThrown: __isThrown });
             --__level;
             return { result: result };
         },
@@ -226,9 +237,9 @@
          * @returns {{result: *} | undefined} - If an object is returned, the value of the get field operation  is
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
-        getField: function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall) {
+        getField: function (iid, base, offset, val, isComputed, isOpAssign, isMethodCall, __isThrown) {
             var proptoString = typeof offset === 'object' || typeof offset === 'function' ? '<side effect>' : offset.toString();
-            stringify({ type: "getField", prop: proptoString, level: __level });
+            stringify({ type: "getField", prop: proptoString, level: __level, isThrown: __isThrown });
             --__level;
             return { result: val };
         },
@@ -269,9 +280,9 @@
          * @returns {{result: *} | undefined} -   If an object is returned, the result of the put field operation is
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
-        putField: function (iid, base, offset, val, isComputed, isOpAssign) {
+        putField: function (iid, base, offset, val, isComputed, isOpAssign, __isThrown) {
             var proptoString = typeof offset === 'object' || typeof offset === 'function' ? '<side effect>' : offset.toString();
-            stringify({ type: "putField", prop: proptoString, level: __level });
+            stringify({ type: "putField", prop: proptoString, level: __level, isThrown: __isThrown });
             --__level;
             return { result: val };
         },
@@ -451,8 +462,8 @@
          * @returns {{result: *}|undefined} - If an object is returned, the result of the binary operation is
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
-        binary: function (iid, op, left, right, result, isOpAssign, isSwitchCaseComparison, isComputed) {
-            stringify({ type: "binary", op, level: __level });
+        binary: function (iid, op, left, right, result, isOpAssign, isSwitchCaseComparison, isComputed, __isThrown) {
+            stringify({ type: "binary", op, level: __level, isThrown: __isThrown });
             --__level;
             return { result: result };
         },
@@ -484,8 +495,8 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          *
          */
-        unary: function (iid, op, left, result) {
-            stringify({ type: "unary", op, level: __level });
+        unary: function (iid, op, left, result, __isThrown) {
+            stringify({ type: "unary", op, level: __level, isThrown: __isThrown });
             --__level;
             return { result: result };
         },
