@@ -17,7 +17,12 @@
         console.log(JSON.stringify(val));
     }
 
-    J$.analysis = {
+    // Pick the analysis object depending on whether we are running under Jalangi or DynaJS
+    var analysisObj = (function () {
+        return typeof J$ === "undefined" ? D$ : J$;
+    })();
+
+    analysisObj.analysis = {
         /**
          * This callback is called before a function, method, or constructor invocation.
          * Note that a method invocation also triggers a {@link MyAnalysis#getFieldPre} and a
