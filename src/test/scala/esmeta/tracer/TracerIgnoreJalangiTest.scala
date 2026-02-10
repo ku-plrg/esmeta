@@ -22,7 +22,7 @@ class TracerIgnoreJalangiTest extends TracerTest {
           targetTests = List(test),
           removed = Nil,
           isTest262 = false,
-          nodeprof = false,
+          targetTracer = Set(TargetKind.Jalangi),
           handleNotSupportedAsFail = true,
           useStdout = false,
         )(using TracerTest.test262).test
@@ -30,6 +30,7 @@ class TracerIgnoreJalangiTest extends TracerTest {
         val summary = TraceComparer(
           TracerTest.test262.cfg,
           TraceRestore.restore(List(test.absPath)),
+          targetTracer = Set(TargetKind.Jalangi),
           useStdout = false,
         ).test
         val f = summary.failCount

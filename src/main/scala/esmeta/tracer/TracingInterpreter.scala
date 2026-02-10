@@ -237,6 +237,14 @@ class TracingInterpreter(
   }
 
   extension (value: Value) {
+    def toSymbolStringIfPossible(using st: State): String = value match
+      case v if SymbolT.contains(v, st) =>
+        val desc = for {
+          desc <- st.get(v.asAddr, Str("Description"))
+        } yield desc
+        s"Symbol(${desc.toOption.map(_.asStr).getOrElse("")})"
+      case v => v.toString
+
     def indexStr: String = value match
       case Str(s)    => s
       case Number(n) => n.toString

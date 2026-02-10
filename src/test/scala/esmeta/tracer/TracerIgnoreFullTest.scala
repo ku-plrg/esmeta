@@ -18,7 +18,7 @@ class TracerIgnoreFullTest extends TracerTest {
       targetTests = TracerTest.targetTests,
       removed = Nil,
       isTest262 = false,
-      nodeprof = true,
+      targetTracer = TargetKind.all,
       useStdout = false,
     )(using TracerTest.test262).test
 
@@ -28,6 +28,7 @@ class TracerIgnoreFullTest extends TracerTest {
         val summary = TraceComparer(
           TracerTest.test262.cfg,
           TraceRestore.restore(TracerTest.targetTests.map(t => t.absPath)),
+          targetTracer = TargetKind.all,
           useStdout = false,
         ).test
         val f = summary.failCount

@@ -19,8 +19,9 @@ class TraceComparer(
   metadata: CachedTraceMetadata,
   log: Boolean = true,
   timeLimit: Option[FiniteDuration] = None,
+  targetTracer: Set[TargetKind] = Set(),
   useStdout: Boolean = true,
-) { jalangi =>
+) { self =>
 
   given CFG = cfg
 
@@ -75,8 +76,21 @@ class TraceComparer(
 
           printlnIfSingle(t.toString)
 
-          val doJalangi = t.kind.contains(TargetKind.Jalangi)
-          val doNodeProf = t.kind.contains(TargetKind.NodeProf)
+          def checkKind(kind: TargetKind): Boolean = {
+            lazy val requested = targetTracer.contains(kind)
+            lazy val available = t.kind.contains(kind)
+            if (requested && !available) {
+              raise(
+                s"Trace for target kind ${kind} is requested, " +
+                s"but not found for test: ${t.absPath}",
+              )
+            }
+            requested && available
+          }
+
+          val doJalangi = checkKind(TargetKind.Jalangi)
+          val doNodeProf = checkKind(TargetKind.NodeProf)
+          val doDynaJS = checkKind(TargetKind.DynaJS)
 
           if (doJalangi) {
             val jalangiPath = s"${t.absPath}.jalangi-trace"
@@ -85,6 +99,10 @@ class TraceComparer(
           if (doNodeProf) {
             val nodeprofPath = s"${t.absPath}.nodeprof-trace"
             testTrace(esmetaTree, nodeprofPath, TargetKind.NodeProf)
+          }
+          if (doDynaJS) {
+            val dynajsPath = s"${t.absPath}.dynajs-trace"
+            testTrace(esmetaTree, dynajsPath, TargetKind.DynaJS)
           }
 
         }
@@ -101,12 +119,12 @@ class TraceComparer(
           printlnIfSingle("=========== Raw Diff Trace ==========")
           printlnIfSingle(rawDiff.prettyprint)
           printlnIfSingle("=====================================")
-          val jalangiDiff = Ignore.forJalangi(rawDiff)
+          val ignoredDiff = Ignore.apply(rawDiff)(using kind)
           printlnIfSingle("============= Diff Trace ============")
-          printlnIfSingle(jalangiDiff.prettyprint)
+          printlnIfSingle(ignoredDiff.prettyprint)
           printlnIfSingle("=====================================")
 
-          lazy val pass = jalangiDiff.isAllSame
+          lazy val pass = ignoredDiff.isAllSame
 
           if (pass)
             printlnIfSingle(

@@ -26,13 +26,17 @@ class TraceDumper(
   // paths: Option[List[String]],
   log: Boolean = true,
   timeLimit: Option[Int] = None,
-  nodeprof: Boolean = true,
+  targetTracer: Set[TargetKind] = Set(),
   handleNotSupportedAsFail: Boolean = false,
   useStdout: Boolean = true,
 )(using
   test262: Test262,
   workdir: WorkDir,
 ) { jalangi =>
+
+  lazy val targetNodeprof: Boolean = targetTracer.contains(TargetKind.NodeProf)
+  lazy val targetDynaJS: Boolean = targetTracer.contains(TargetKind.DynaJS)
+  lazy val targetJalangi: Boolean = targetTracer.contains(TargetKind.Jalangi)
 
   // pre-jobs
   lazy val multiple = targetTests.length > 1
@@ -93,17 +97,18 @@ class TraceDumper(
           // keep this to check if ESMeta-not-supported features exist
           Aux.runESMetaInterp(code, ast, timeLimit)
 
-          val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
-          dumpFile(
-            "", // name placeholder to set silent = !useStdout
-            jalangiOutput,
-            s"${workdir.path}/${elemize(test, -1)}.jalangi-trace",
-            silent = !(useStdout && !multiple),
-          )
+          if (targetJalangi) {
+            val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
+            dumpFile(
+              "", // name placeholder to set silent = !useStdout
+              jalangiOutput,
+              s"${workdir.path}/${elemize(test, -1)}.jalangi-trace",
+              silent = !(useStdout && !multiple),
+            )
+            printlnIfSingle(s"Jalangi output:\n${jalangiOutput}\n${jalangiErr}")
+          }
 
-          printlnIfSingle(s"Jalangi output:\n${jalangiOutput}\n${jalangiErr}")
-
-          if (nodeprof) {
+          if (targetNodeprof) {
             val (npOutput, npErr) = Aux.runNodeProf(
               analysisPath = ANALYSIS_FILE_PATH_COPIED_TO_TMP,
               testPath = tmpFilePath,
@@ -116,7 +121,20 @@ class TraceDumper(
             )
           }
 
-          val kind = if nodeprof then TargetKind.all else TargetKind.jalangiOnly
+          if (targetDynaJS) {
+            val (dynaOutput, dynaErr) = Aux.runDynaJS(tmpFilePath)
+            dumpFile(
+              "", // name placeholder to set silent = !useStdout
+              dynaOutput,
+              s"${workdir.path}/${elemize(test, -1)}.dynajs-trace",
+              silent = !(useStdout && !multiple),
+            )
+          }
+
+          val kind =
+            (if targetJalangi then Set(TargetKind.Jalangi) else Set()) ++
+            (if targetDynaJS then Set(TargetKind.DynaJS) else Set()) ++
+            (if targetNodeprof then Set(TargetKind.NodeProf) else Set())
 
           dumpFile(
             "", // name placeholder to set silent = !useStdout
@@ -193,14 +211,18 @@ class TraceDumper(
       throw new RuntimeException("JALANGI_HOME not set"),
     )
   }
-  val CHECK_SCRIPT_DIR: String = {
-    s"${BASE_DIR}/checkscript"
-  }
+  val CHECK_SCRIPT_DIR: String = { s"${BASE_DIR}/checkscript" }
   val ANALYSIS_FILE_PATH: String = {
     val path = java.nio.file.Paths.get(BASE_DIR, "analysis.compare.js")
     if (!java.nio.file.Files.exists(path))
       throw new java.io.FileNotFoundException(s"${path} not found")
     path.toString
+  }
+  val DYNAJS_HOME: String = {
+    sys.env.getOrElse(
+      "DYNAJS_HOME",
+      throw new RuntimeException("DYNAJS_HOME not set"),
+    )
   }
 
   lazy val ANALYSIS_FILE_PATH_COPIED_TO_TMP: String = {
@@ -211,40 +233,28 @@ class TraceDumper(
 
   object Aux {
 
-    private val CHECK_SCRIPT_COMMAND: String = {
-      val home = sys.env.getOrElse(
-        "ESMETA_HOME",
-        throw new RuntimeException("ESMETA_HOME not set"),
-      )
-      s"node ${home}/checkscript/dist/check.js"
-    }
+    private val CHECK_SCRIPT_JS: String = s"$BASE_DIR/checkscript/dist/check.js"
+    private val CHECK_SCRIPT_CMD: String = s"node $CHECK_SCRIPT_JS"
 
     /** Check syntax of a test file using acorn and some requirements. It should
       * be a valid ES5 syntax, not include `this`, `use strict`, etc.
       */
     def checkSyntax(filename: String): (Boolean, String, String) = {
-      val (exitcode, str, err) = executeCmdNonZero(
-        s"$CHECK_SCRIPT_COMMAND $filename",
-      )
-      // printlnIfSingle(s"ESLint output:\n${str}...")
-      (exitcode == 0, str, err)
+      val CMD = s"$CHECK_SCRIPT_CMD $filename"
+      val (code, o, e) = executeCmdNonZero(CMD)
+      (code == 0, o, e)
     }
 
-    lazy val BOOTSTRAP_NODE_JS: String =
-      s"${sys.env.getOrElse("ESMETA_HOME", throw new RuntimeException("ESMETA_HOME not set"))}/bootstrap-node.js"
-
-    lazy val BOOTSTRAP_NODE_JS_COPIED: String = {
-      ???
-    }
+    lazy val BOOTSTRAP_NODE_JS: String = s"$BASE_DIR/bootstrap-node.js"
+    lazy val BOOTSTRAP_NODE_JS_COPIED: String = { ??? }
 
     def runNodeJs(
       testpath: String,
     ): Boolean = {
-      val (exitcode, out, err) = executeCmdNonZero(
-        s"node --require $BOOTSTRAP_NODE_JS $testpath",
-      )
-      printlnIfSingle(s"Node.js output:\n${out}\n${err}")
-      exitcode == 0
+      val CMD = s"node --require $BOOTSTRAP_NODE_JS $testpath"
+      val (code, o, e) = executeCmdNonZero(CMD)
+      printlnIfSingle(s"Node.js output:\n${o}\n${e}")
+      code == 0
       // if it doesn't pass node.js, it is not worth to run Jalangi
     }
 
@@ -328,6 +338,32 @@ class TraceDumper(
         test262.cfg.init.from(code, ast),
         timeLimit = timeLimit,
       ).result
+    }
+
+    def runDynaJS(tmpFilePath: String): (String, String) = {
+      try {
+        val (s, err) =
+          executeCmdTimeout(
+            s"node --require ${BOOTSTRAP_NODE_JS} ${DYNAJS_HOME}/dist/index.js analyze -a $ANALYSIS_FILE_PATH $tmpFilePath",
+            duration = 60.seconds,
+          ).getOrElse(
+            throw java.util.concurrent.TimeoutException(
+              "DynaJS timed out, maybe because of ES6+ features?",
+            ),
+          )
+        if (s.startsWith("Failed to instrument"))
+          throw NotSupported(
+            "The test may include new features not supported by DynaJS",
+          )
+        (s, err)
+        // maybe test includes new features not supported by DynaJS
+      } catch {
+        case e: Throwable =>
+          printlnIfSingle(
+            s"Error in DynaJS Test262 Test: ${e.getStackTrace()}",
+          )
+          throw e;
+      }
     }
 
     def runJalangi(tmpFilePath: String): (String, String) = {

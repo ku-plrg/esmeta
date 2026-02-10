@@ -9,6 +9,7 @@ object Ignore {
     kind match
       case TargetKind.Jalangi  => forJalangi(diffTree)
       case TargetKind.NodeProf => forNodeProf(diffTree)
+      case TargetKind.DynaJS   => forDynaJS(diffTree)
 
   def forJalangi(diffTree: TraceDiff.DiffTree): TraceDiff.DiffTree = {
     given TargetKind = TargetKind.Jalangi
@@ -35,6 +36,12 @@ object Ignore {
       NodeProfLocate().traverse >>>
       GetFromGlobal().traverse >>>
       LiteralAsRead().traverse
+    TraceDiff.DiffTree(ignore(diffTree.roots))
+  }
+
+  def forDynaJS(diffTree: TraceDiff.DiffTree): TraceDiff.DiffTree = {
+    given TargetKind = TargetKind.DynaJS
+    val ignore = identity[Vector[TraceDiff.DiffNode]]
     TraceDiff.DiffTree(ignore(diffTree.roots))
   }
 }

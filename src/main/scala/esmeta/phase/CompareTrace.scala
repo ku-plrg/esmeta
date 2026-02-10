@@ -61,6 +61,21 @@ case object CompareTrace extends Phase[(CFG, CachedTraceMetadata), Unit] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
+    (
+      "tracer",
+      StrOption((c, s) => {
+        val kind = TargetKind.from(s) match
+          case Some(value) => value
+          case None        => raise(s"Unknown target kind: $s")
+
+        if (c.tracer contains kind) {
+          warn(s"Duplicate target kind for 'tracer' option: $s")
+        }
+
+        c.tracer += kind
+      }),
+      "show warning message regarding Test262 tracing.",
+    ),
   )
   case class Config(
     var progress: Boolean = false,
@@ -68,5 +83,7 @@ case object CompareTrace extends Phase[(CFG, CachedTraceMetadata), Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
+    //
+    var tracer: Set[TargetKind] = Set(),
   )
 }

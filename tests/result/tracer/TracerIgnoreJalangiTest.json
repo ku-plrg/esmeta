@@ -22,6 +22,8 @@
   "invoke-throw" : true,
   "invoke-throw-builtin" : true,
   "invoke-typeerror" : true,
+  "literal" : false,
+  "literal-number" : true,
   "not-callable" : true,
   "not-constructable" : true,
   "postfix-dec" : true,
@@ -34,5 +36,6 @@
   "side-effect" : true,
   "switch" : true,
   "test" : true,
-  "this" : true
+  "this" : true,
+  "write" : true
 }

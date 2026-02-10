@@ -31,7 +31,7 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
     // set test mode
     TEST_MODE = true
 
-    val version = Test262.getVersion(config.target)
+    val version = Test262.getVersion(config.test262Target)
     val test262 = Test262(version, cfg, config.withYet)
     val targets =
       if (cmdConfig.targets.isEmpty) None
@@ -44,10 +44,17 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
         "automatic thread number is not allowed.",
       )
 
-    if (config.fromCache && !config.nodeprof)
+    if (config.fromCache && !config.tracer.nonEmpty) {
       warn(
-        "skip-nodeprof option has no effect when collecting traces from cached trace files.",
+        "`tracer` option has no effect when using `from-cache`.",
       )
+    }
+
+    if (config.tracer.isEmpty && !config.fromCache) {
+      raise(
+        "No target kind is specified for tracing. No traces will be collected. To specify target kinds, use -collect-trace:tracer=<kind>.",
+      )
+    }
 
     if (config.clean) {
       TraceRestore.clean(using TRACER_WORKDIR)
@@ -67,7 +74,7 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
         removed,
         isTest262,
         timeLimit = Some(60000),
-        nodeprof = config.nodeprof,
+        targetTracer = config.tracer,
       )(using test262, TRACER_WORKDIR).test
     }
 
@@ -88,8 +95,8 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "target",
-      StrOption((c, s) => c.target = Some(s)),
+      "test262-target",
+      StrOption((c, s) => c.test262Target = Some(s)),
       "set the target git version of Test262 (default: current version).",
     ),
     (
@@ -127,11 +134,6 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
       " If number <= 0, use automatically determined number of threads.",
     ),
     (
-      "skip-nodeprof",
-      BoolOption((c, b) => c.nodeprof = !b),
-      "skip NodeProf instrumentation even if NodeProf is available.",
-    ),
-    (
       "from-cache",
       BoolOption((c, b) => c.fromCache = b),
       "collect traces from cached trace files instead of running tests.",
@@ -141,9 +143,24 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
       BoolOption((c, b) => c.clean = b),
       "clean the tracer working directory before collecting traces.",
     ),
+    (
+      "tracer",
+      StrOption((c, s) => {
+        val kind = TargetKind.from(s) match
+          case Some(value) => value
+          case None        => raise(s"Unknown target kind: $s")
+
+        if (c.tracer contains kind) {
+          warn(s"Duplicate target kind for 'tracer' option: $s")
+        }
+
+        c.tracer += kind
+      }),
+      "show warning message regarding Test262 tracing.",
+    ),
   )
   case class Config(
-    var target: Option[String] = None,
+    var test262Target: Option[String] = None,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
@@ -151,8 +168,8 @@ case object CollectTrace extends Phase[CFG, (CFG, CachedTraceMetadata)] {
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     //
-    var nodeprof: Boolean = true,
     var fromCache: Boolean = false,
     var clean: Boolean = false,
+    var tracer: Set[TargetKind] = Set(),
   )
 }

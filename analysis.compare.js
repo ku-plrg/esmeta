@@ -17,10 +17,13 @@
         console.log(JSON.stringify(val));
     }
 
+    var isDynaJS = typeof D$ !== "undefined";
+
     // Pick the analysis object depending on whether we are running under Jalangi or DynaJS
     var analysisObj = (function () {
-        return typeof J$ === "undefined" ? D$ : J$;
+        return isDynaJS ? D$ : J$;
     })();
+
 
     analysisObj.analysis = {
         /**
@@ -321,7 +324,9 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
         write: function (iid, name, val, lhs, isGlobal, isScriptLocal) {
-            stringify({ type: "write", name: name, level: __level });
+            // dynajs supports ES6+ features so it gives name as an array - temporal hack for now
+            var name__ = isDynaJS ? name[0] : name;
+            stringify({ type: "write", name: name__, level: __level });
             return { result: val };
         },
 

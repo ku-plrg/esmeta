@@ -138,6 +138,8 @@ lazy val test262EvalTest =
 lazy val tracerIgnoreFullTest = taskKey[Unit]("Launch tracer ignore full tests")
 lazy val tracerIgnoreJalangiTest =
   taskKey[Unit]("Launch tracer ignore jalangi tests")
+lazy val tracerIgnoreDynaJSTest =
+  taskKey[Unit]("Launch tracer ignore dynajs tests")
 
 // Java options for assembly
 lazy val assemblyJavaOpts = Seq(
@@ -303,6 +305,9 @@ lazy val root = project
       .value,
     tracerIgnoreJalangiTest := (Test / testOnly)
       .toTask(" *.tracer.TracerIgnoreJalangiTest")
+      .value,
+    tracerIgnoreDynaJSTest := (Test / testOnly)
+      .toTask(" *.tracer.TracerIgnoreDynaJSTest")
       .value,
   )
 
