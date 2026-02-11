@@ -105,7 +105,7 @@ class TraceDumper(
               s"${workdir.path}/${elemize(test, -1)}.jalangi-trace",
               silent = !(useStdout && !multiple),
             )
-            printlnIfSingle(s"Jalangi output:\n${jalangiOutput}\n${jalangiErr}")
+            // printlnIfSingle(s"Jalangi output:\n${jalangiOutput}\n${jalangiErr}")
           }
 
           if (targetNodeprof) {
@@ -214,6 +214,12 @@ class TraceDumper(
   val CHECK_SCRIPT_DIR: String = { s"${BASE_DIR}/checkscript" }
   val ANALYSIS_FILE_PATH: String = {
     val path = java.nio.file.Paths.get(BASE_DIR, "analysis.compare.js")
+    if (!java.nio.file.Files.exists(path))
+      throw new java.io.FileNotFoundException(s"${path} not found")
+    path.toString
+  }
+  val ANALYSIS_DYNAJS_FILE_PATH: String = {
+    val path = java.nio.file.Paths.get(BASE_DIR, "analysis.dyna.js")
     if (!java.nio.file.Files.exists(path))
       throw new java.io.FileNotFoundException(s"${path} not found")
     path.toString
@@ -344,7 +350,7 @@ class TraceDumper(
       try {
         val (s, err) =
           executeCmdTimeout(
-            s"node --require ${BOOTSTRAP_NODE_JS} ${DYNAJS_HOME}/dist/index.js analyze -a $ANALYSIS_FILE_PATH $tmpFilePath",
+            s"node --require ${BOOTSTRAP_NODE_JS} ${DYNAJS_HOME}/dist/index.js analyze -a $ANALYSIS_DYNAJS_FILE_PATH $tmpFilePath",
             duration = 60.seconds,
           ).getOrElse(
             throw java.util.concurrent.TimeoutException(

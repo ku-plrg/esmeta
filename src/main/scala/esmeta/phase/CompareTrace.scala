@@ -29,9 +29,14 @@ case object CompareTrace extends Phase[(CFG, CachedTraceMetadata), Unit] {
   ): Unit =
     val (cfg, cachedTraceMetadata) = input
 
+    if (config.tracer.isEmpty) {
+      raise("No target tracer specified for 'compare-trace' phase.")
+    }
+
     TraceComparer(
       cfg,
       cachedTraceMetadata,
+      targetTracer = config.tracer,
       timeLimit = Some(60.seconds),
     ).test
 

@@ -41,7 +41,20 @@ object Ignore {
 
   def forDynaJS(diffTree: TraceDiff.DiffTree): TraceDiff.DiffTree = {
     given TargetKind = TargetKind.DynaJS
-    val ignore = identity[Vector[TraceDiff.DiffNode]]
+    val ignore =
+      SuppressInternalOperation().traverse >>>
+      GetFromGlobal().traverse >>>
+      RightSideFunctionLiteral().traverse >>>
+      RightSideDeclareThenFunctionLiteral().traverse >>>
+      RightSideThrown().traverse >>>
+      ReadEval().traverse >>>
+      SuppressOperator().traverse >>>
+      LiteralAsRead().traverse >>>
+      SuppressInternalOperationWithFE().traverse >>>
+      FirstDeclare().traverse >>>
+      RightSidePutField().traverse >>>
+      RightSideDeclare().traverse // >>>
+    // IncDecOperators().traverse
     TraceDiff.DiffTree(ignore(diffTree.roots))
   }
 }
