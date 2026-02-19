@@ -1,13 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { parseES5 } from './check.js';
+import { parseLatest } from './check-require.js';
 import { checkTopLevelThisAndThrow } from './check.this.js';
 import * as walk from 'acorn-walk';
 
 describe('ES5 Parser', () => {
   it('', () => {
     const code = `var test = (function() { return this })();`;
-    const result = parseES5(code);
+    const result = parseLatest(code);
     console.log(result);
 
     walk.ancestor<unknown>(result, {

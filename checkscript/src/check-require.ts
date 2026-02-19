@@ -27,13 +27,13 @@ function printVersion(): void {
   console.log('unknown');
 }
 
-export function parseES5(code: string): Program {
+export function parseLatest(code: string): Program {
   try {
-    return parse(code, { ecmaVersion: 5, sourceType: 'script', locations: true });
+    return parse(code, { ecmaVersion: "latest", sourceType: 'script', locations: true });
   } catch (err: unknown) {
     // emit error without details
     console.error(err);
-    throw new Error('Maybe not a valid ES5 script.');
+    throw new Error('Maybe not a valid latest script.');
   }
 }
 
@@ -61,7 +61,7 @@ export default async function main(argv: string[] = process.argv.slice(2)): Prom
   }
 
   try {
-    const ast = parseES5(code);
+    const ast = parseLatest(code);
     checkTopLevelThisAndThrow(ast);
     checkUseStrictDirectiveAndThrow(ast);
     checkSyntaxErrorAndThrow(ast);
