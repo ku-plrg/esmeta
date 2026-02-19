@@ -86,9 +86,13 @@ class TraceDumper(
 
           printlnIfSingle(s"Running Jalangi for ${tmpFilePath}")
 
-          Aux.checkSyntax(tmpFilePath) match
-            case (false, str, err) => throw NotSupported(err)
-            case _                 => ()
+          val isES5 = Aux.checkES5(tmpFilePath)
+          val isValid = Aux.checkRequirements(tmpFilePath) match
+            case (false, str, err) => false
+            case _                 => true
+          val isAvailableForJalangi = isES5 && isValid
+          val isAvailableForDynaJS = isValid
+          val isAvailableForNodeProf = isValid
 
           Aux.runNodeJs(tmpFilePath) match
             case false => throw NotSupported("Does not pass Node.js")
@@ -98,14 +102,19 @@ class TraceDumper(
           Aux.runESMetaInterp(code, ast, timeLimit)
 
           if (targetJalangi) {
-            val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
-            dumpFile(
-              "", // name placeholder to set silent = !useStdout
-              jalangiOutput,
-              s"${workdir.path}/${elemize(test, -1)}.jalangi-trace",
-              silent = !(useStdout && !multiple),
-            )
-            // printlnIfSingle(s"Jalangi output:\n${jalangiOutput}\n${jalangiErr}")
+            if (isAvailableForJalangi) {
+              val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
+              dumpFile(
+                "", // name placeholder to set silent = !useStdout
+                jalangiOutput,
+                s"${workdir.path}/${elemize(test, -1)}.jalangi-trace",
+                silent = !(useStdout && !multiple),
+              )
+            } else {
+              printlnIfSingle(
+                s"Skipping Jalangi for ${tmpFilePath} since it is not supported by Jalangi (maybe due to ES6+ features?)",
+              )
+            }
           }
 
           if (targetNodeprof) {
@@ -122,19 +131,36 @@ class TraceDumper(
           }
 
           if (targetDynaJS) {
-            val (dynaOutput, dynaErr) = Aux.runDynaJS(tmpFilePath)
-            dumpFile(
-              "", // name placeholder to set silent = !useStdout
-              dynaOutput,
-              s"${workdir.path}/${elemize(test, -1)}.dynajs-trace",
-              silent = !(useStdout && !multiple),
-            )
+            if (isAvailableForDynaJS) {
+              val (dynaOutput, dynaErr) = Aux.runDynaJS(tmpFilePath)
+              dumpFile(
+                "", // name placeholder to set silent = !useStdout
+                dynaOutput,
+                s"${workdir.path}/${elemize(test, -1)}.dynajs-trace",
+                silent = !(useStdout && !multiple),
+              )
+            } else {
+              printlnIfSingle(
+                s"Skipping DynaJS for ${tmpFilePath} since it is not supported by DynaJS (maybe due to ES6+ features?)",
+              )
+            }
           }
 
           val kind =
-            (if targetJalangi then Set(TargetKind.Jalangi) else Set()) ++
-            (if targetDynaJS then Set(TargetKind.DynaJS) else Set()) ++
-            (if targetNodeprof then Set(TargetKind.NodeProf) else Set())
+            (if (targetJalangi && isAvailableForJalangi) then
+               Set(TargetKind.Jalangi)
+             else Set()) ++
+            (if targetDynaJS && isAvailableForDynaJS then Set(TargetKind.DynaJS)
+             else Set()) ++
+            (if targetNodeprof && isAvailableForNodeProf then
+               Set(TargetKind.NodeProf)
+             else Set())
+
+          if (kind.isEmpty) {
+            throw NotSupported(
+              "The test may include new features not supported by the target tracer(s)",
+            )
+          }
 
           dumpFile(
             "", // name placeholder to set silent = !useStdout
@@ -239,16 +265,24 @@ class TraceDumper(
 
   object Aux {
 
-    private val CHECK_SCRIPT_JS: String = s"$BASE_DIR/checkscript/dist/check.js"
-    private val CHECK_SCRIPT_CMD: String = s"node $CHECK_SCRIPT_JS"
-
     /** Check syntax of a test file using acorn and some requirements. It should
-      * be a valid ES5 syntax, not include `this`, `use strict`, etc.
+      * be a valid JS syntax, not include `this`, `use strict`, etc.
       */
-    def checkSyntax(filename: String): (Boolean, String, String) = {
-      val CMD = s"$CHECK_SCRIPT_CMD $filename"
+    def checkRequirements(filename: String): (Boolean, String, String) = {
+      val CHECK_VALIDITY_FOR_JALANGI: String =
+        s"$BASE_DIR/checkscript/dist/check-require.js"
+      val CMD = s"node $CHECK_VALIDITY_FOR_JALANGI $filename"
       val (code, o, e) = executeCmdNonZero(CMD)
       (code == 0, o, e)
+    }
+
+    /** Check syntax of a test file using. It should be a valid ES5 syntax */
+    def checkES5(filename: String): Boolean = {
+      val CHECK_VALIDITY_ES5: String =
+        s"$BASE_DIR/checkscript/dist/check-es5.js"
+      val CMD = s"node $CHECK_VALIDITY_ES5 $filename"
+      val (code, _, _) = executeCmdNonZero(CMD)
+      code == 0
     }
 
     lazy val BOOTSTRAP_NODE_JS: String = s"$BASE_DIR/bootstrap-node.js"
