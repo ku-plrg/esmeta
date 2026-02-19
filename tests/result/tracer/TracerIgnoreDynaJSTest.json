@@ -12,7 +12,7 @@
   "getfield-symbol" : true,
   "invoke-builtin" : true,
   "invoke-fe" : true,
-  "invoke-indirect" : false,
+  "invoke-indirect" : true,
   "invoke-indirect-complex" : true,
   "invoke-indirect-complex-2" : true,
   "invoke-indirect-complex-3" : true,
@@ -34,8 +34,8 @@
   "prefix2" : false,
   "putfield-symbol" : true,
   "side-effect" : false,
-  "switch" : false,
+  "switch" : true,
   "test" : true,
-  "this" : false,
+  "this" : true,
   "write" : true
 }
