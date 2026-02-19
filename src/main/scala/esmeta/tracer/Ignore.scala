@@ -53,8 +53,9 @@ object Ignore {
       SuppressInternalOperationWithFE().traverse >>>
       FirstDeclare().traverse >>>
       RightSidePutField().traverse >>>
-      RightSideDeclare().traverse // >>>
-    // IncDecOperators().traverse
+      RightSideDeclare().traverse >>>
+      DynaJSIncDecOperators().traverse >>>
+      identity
     TraceDiff.DiffTree(ignore(diffTree.roots))
   }
 }
