@@ -275,7 +275,7 @@ object SystemUtils {
     cmd: String,
     duration: FiniteDuration,
     dir: String = CUR_DIR,
-  ): Option[(String, String)] = {
+  ): Option[(Int, String, String)] = {
     val out = new StringBuilder
     val err = new StringBuilder
     val processBuilder = Process(Seq("sh", "-c", cmd), new File(dir))
@@ -290,8 +290,8 @@ object SystemUtils {
       process.exitValue() // waits for completion
     }
     try
-      Await.result(future, duration)
-      Some(out.toString() -> err.toString())
+      val exitcode = Await.result(future, duration)
+      Some((exitcode, out.toString(), err.toString()))
     catch
       case _: TimeoutException =>
         process.destroy() // terminate process

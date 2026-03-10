@@ -346,7 +346,7 @@ class TraceDumper(
       val (str, err) =
         try {
           // printlnIfSingle(s"Executing Jalangi command: $cmd")
-          val (s, err) =
+          val (_, s, err) =
             executeCmdTimeout(cmd, duration = 60.seconds, dir = workdir.path)
               .getOrElse(
                 throw java.util.concurrent.TimeoutException(
@@ -357,7 +357,7 @@ class TraceDumper(
             throw NotSupported(
               "The test may include new features not supported by NodeProf",
             )
-          (s, err)
+          (s, err) 
           // maybe test includes new features not supported by Jalangi
         } catch {
           case e: Throwable =>
@@ -382,7 +382,7 @@ class TraceDumper(
 
     def runDynaJS(tmpFilePath: String): (String, String) = {
       try {
-        val (s, err) =
+        val (_, s, err) =
           executeCmdTimeout(
             s"node --require ${BOOTSTRAP_NODE_JS} ${DYNAJS_HOME}/dist/index.js analyze -a $ANALYSIS_DYNAJS_FILE_PATH $tmpFilePath",
             duration = 60.seconds,
@@ -410,7 +410,7 @@ class TraceDumper(
       val (str, err) =
         try {
           // printlnIfSingle(s"Executing Jalangi command: $jalangiCmd")
-          val (s, err) =
+          val (_, s, err) =
             executeCmdTimeout(
               s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi.js --inlineIID --inlineSource --analysis $ANALYSIS_FILE_PATH $tmpFilePath",
               duration = 60.seconds,

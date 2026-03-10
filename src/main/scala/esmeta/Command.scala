@@ -160,6 +160,19 @@ case object CmdTest262Test
   override val needTarget = false
 }
 
+case object CmdTest262DynaJS
+  extends Command("test262-dynajs", CmdBuildCFG >> Test262DynaJS) {
+  val help = "tests Test262 tests with DynaJS (default: tests/test262)."
+  val examples = List(
+    "esmeta test262-dynajs                                           # all",
+    "esmeta test262-dynajs tests/test262/test/built-ins/Map/map.js   # file",
+    "esmeta test262-dynajs tests/test262/test/language/expressions   # directory",
+  )
+  override val targetName = "<js|dir>+"
+  override val needTarget = false
+
+}
+
 /** `test262-test` command */
 case object CmdDATest
   extends Command("da-test", CmdBuildCFG >> CollectTrace >> CompareTrace) {

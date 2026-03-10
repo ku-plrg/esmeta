@@ -79,6 +79,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdWeb,
     // Tester for Test262 (ECMAScript Test Suite)
     CmdTest262Test,
+    CmdTest262DynaJS,
     CmdDATest,
     // ECMAScript Fuzzer
     CmdFuzz,
@@ -94,7 +95,7 @@ object ESMeta extends Git(BASE_DIR) {
   }
 
   /** phases */
-  var phases: List[Phase[_, _]] = List(
+  val phases: List[Phase[_, _]] = List(
     Help,
     // Mechanized Specification Extraction
     Extract,
