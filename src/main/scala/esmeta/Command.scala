@@ -170,7 +170,18 @@ case object CmdTest262DynaJS
   )
   override val targetName = "<js|dir>+"
   override val needTarget = false
+}
 
+case object CmdTest262JalangiBabel
+  extends Command("test262-jalangi-babel", CmdBuildCFG >> Test262JalangiBabel) {
+  val help = "tests Test262 tests with JalangiBabel (default: tests/test262)."
+  val examples = List(
+    "esmeta test262-jalangi-babel                                           # all",
+    "esmeta test262-jalangi-babel tests/test262/test/built-ins/Map/map.js   # file",
+    "esmeta test262-jalangi-babel tests/test262/test/language/expressions   # directory",
+  )
+  override val targetName = "<js|dir>+"
+  override val needTarget = false
 }
 
 /** `test262-test` command */
