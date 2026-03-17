@@ -271,7 +271,7 @@ class JalangiBabelTest262Runner(
     def runJalangiBabel(tmpFilePath: String): (Int, String, String) = {
       try {
         executeCmdTimeout(
-          s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi_babel.js --analyze ${ANALYSIS_JALANGI_FILE_PATH} $tmpFilePath",
+          s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi_babel.js --analysis ${ANALYSIS_JALANGI_FILE_PATH} $tmpFilePath",
           duration = 60.seconds,
         ).getOrElse(
           throw java.util.concurrent.TimeoutException(
