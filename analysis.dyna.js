@@ -13,6 +13,10 @@
         }
     }
 
+    function specToString(val) {
+        return String(new String(val));
+    }
+
     function stringify(val) {
         console.log(JSON.stringify(val));
     }
@@ -59,28 +63,28 @@
         },
 
         getFieldPre: function (iid, base, prop) {
-            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : prop.toString();
+            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : specToString(prop);
             stringify({ type: "getFieldPre", prop: proptoString, level: __level });
             ++__level;
             return { base: base, prop: prop, skip: false };
         },
 
         getField: function (iid, base, prop, result) {
-            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : prop.toString();
+            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : specToString(prop);
             stringify({ type: "getField", prop: proptoString, level: __level });
             --__level;
             return { result };
         },
 
         putFieldPre: function (iid, base, prop, value) {
-            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : prop.toString();
+            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : specToString(prop);
             stringify({ type: "putFieldPre", prop: proptoString, level: __level });
             ++__level;
             return { base, prop, value, skip: false };
         },
 
         putField: function (iid, base, prop, value) {
-            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : prop.toString();
+            var proptoString = typeof prop === 'object' || typeof prop === 'function' ? '<side effect>' : specToString(prop);
             stringify({ type: "putField", prop: proptoString, level: __level });
             --__level;
             return { result: value };
