@@ -2,7 +2,6 @@ package esmeta.tracer
 
 import esmeta.util.SystemUtils.*
 
-@deprecated("using tree diff instead")
 object Diff {
   enum ColorOption:
     case Always, Never, Auto
