@@ -136,6 +136,8 @@ class DynaJSTest262Runner(
                   s"DynaJS failed. Expected 0 but got partial: ${c1}, full: ${c2}.",
                 )
             if (oPartial != oFull) {
+              printlnIfSingle(s"DynaJS compare:\n${oPartial}")
+              printlnIfSingle(Diff.get(oPartial, oFull))
               raise(
                 s"DynaJS partial and full results differ",
               )
