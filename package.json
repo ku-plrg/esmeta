@@ -1,0 +1,18 @@
+{
+  "name": "esmeta",
+  "version": "1.0.0",
+  "description": "[![test](https://github.com/es-meta/esmeta/actions/workflows/ci.yml/badge.svg)](https://github.com/es-meta/esmeta/actions) [![license](https://badgen.net/github/license/es-meta/esmeta)](https://github.com/es-meta/esmeta/blob/main/LICENSE.md) [![release](https://badgen.net/github/release/es-meta/esmeta)](https://github.com/es-meta/esmeta/releases) [![prs](https://badgen.net/github/prs/es-meta/esmeta)](https://github.com/es-meta/esmeta/pulls) [![slack](https://badgen.net/badge/slack/esmeta/blue)](https://esmeta.slack.com/) [![site](https://badgen.net/badge/site/jekyll/blue)](https://es-meta.github.io/) [![doc](https://badgen.net/badge/doc/scaladoc/blue)](https://es-meta.github.io/esmeta)",
+  "homepage": "https://github.com/es-meta/esmeta#readme",
+  "bugs": {
+    "url": "https://github.com/es-meta/esmeta/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/es-meta/esmeta.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "directories": { },
+  "scripts": { }
+}
