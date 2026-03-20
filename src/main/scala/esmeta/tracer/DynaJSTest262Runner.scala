@@ -288,11 +288,14 @@ class DynaJSTest262Runner(
     }
 
     def runDynaJS(tmpFilePath: String, full: Boolean): (Int, String, String) = {
-      val fullOpt = if full then "--full" else "--partial"
+      val DYNAJS_PARTIAL_HOOK = if full then "" else "DYNAJS_PARTIAL_HOOK=1"
       try {
         val (exitcode, s, err) =
+          val command =
+            s"$DYNAJS_PARTIAL_HOOK DYNAJS_ANALYSIS=$ANALYSIS_DYNAJS_FILE_PATH  dynajs node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath"
+          printlnIfSingle(s"Running DynaJS with command: ${command}")
           executeCmdTimeout(
-            s"node --require ${BOOTSTRAP_NODE_JS} ${DYNAJS_HOME}/dynajs analyze $fullOpt -a $ANALYSIS_DYNAJS_FILE_PATH $tmpFilePath",
+            command,
             duration = 60.seconds,
           ).getOrElse(
             throw java.util.concurrent.TimeoutException(
