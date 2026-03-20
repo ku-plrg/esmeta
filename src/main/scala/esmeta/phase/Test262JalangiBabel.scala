@@ -58,6 +58,7 @@ case object Test262JalangiBabel extends Phase[CFG, Unit] {
       removed,
       isTest262,
       timeLimit = Some(60000),
+      useBabel = config.useBabel,
     )(using test262, workdir).test
   }
 
@@ -102,6 +103,11 @@ case object Test262JalangiBabel extends Phase[CFG, Unit] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
+    (
+      "use-babel",
+      BoolOption((c, b) => c.useBabel = b),
+      "use Babel for transpilation (default: true).",
+    ),
   )
   case class Config(
     var test262Target: Option[String] = None,
@@ -111,5 +117,6 @@ case object Test262JalangiBabel extends Phase[CFG, Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
+    var useBabel: Boolean = true,
   )
 }

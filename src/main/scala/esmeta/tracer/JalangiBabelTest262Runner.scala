@@ -30,6 +30,7 @@ class JalangiBabelTest262Runner(
   // targetTracer: Set[TargetKind] = Set(),
   handleNotSupportedAsFail: Boolean = false,
   useStdout: Boolean = true,
+  useBabel: Boolean = true,
 )(using
   test262: Test262,
   workdir: WorkDir,
@@ -112,47 +113,61 @@ class JalangiBabelTest262Runner(
               )
           }
 
-          if (isAvailableForJalangiBabel) {
-            val (c1, out, _) = Aux.runJalangiBabel(tmpFilePath);
-            (c1) match
-              case 0 => ()
-              case _ =>
-                raise(
-                  s"JalangiBabel failed. Expected 0 but got ${c1}.",
-                )
+          if (useBabel) then {
+            if (isAvailableForJalangiBabel) {
+              val (c1, out, _) = Aux.runJalangiBabel(tmpFilePath);
+              (c1) match
+                case 0 => ()
+                case _ =>
+                  raise(
+                    s"JalangiBabel failed. Expected 0 but got ${c1}.",
+                  )
+            } else {
+              printlnIfSingle(
+                s"Skipping JalangiBabel for ${tmpFilePath} since it is not supported by JalangiBabel",
+              )
+            }
+
+            val kind =
+              if (isAvailableForJalangiBabel)
+                Set(
+                  TargetKind.Jalangi,
+                ) // TODO : distinguish Jalangi and JalangiBabel
+              else Set()
+
+            if (kind.isEmpty) {
+              throw NotSupported(
+                "The test may include new features not supported by the target tracer(s)",
+              )
+            }
           } else {
-            printlnIfSingle(
-              s"Skipping JalangiBabel for ${tmpFilePath} since it is not supported by JalangiBabel",
-            )
+            if (isAvailableForJalangi) {
+              val (c1, out, _) = Aux.runJalangi(tmpFilePath);
+              (c1) match
+                case 0 => ()
+                case _ =>
+                  raise(
+                    s"Jalangi failed. Expected 0 but got ${c1}.",
+                  )
+            } else {
+              printlnIfSingle(
+                s"Skipping Jalangi for ${tmpFilePath} since it is not supported by Jalangi",
+              )
+            }
+
+            val kind =
+              if (isAvailableForJalangi)
+                Set(
+                  TargetKind.Jalangi,
+                ) // TODO : distinguish Jalangi and JalangiBabel
+              else Set()
+
+            if (kind.isEmpty) {
+              throw NotSupported(
+                "The test may include new features not supported by the target tracer(s)",
+              )
+            }
           }
-
-          val kind =
-            if (isAvailableForJalangiBabel)
-              Set(
-                TargetKind.Jalangi,
-              ) // TODO : distinguish Jalangi and JalangiBabel
-            else Set()
-
-          if (kind.isEmpty) {
-            throw NotSupported(
-              "The test may include new features not supported by the target tracer(s)",
-            )
-          }
-
-          dumpFile(
-            "", // name placeholder to set silent = !useStdout
-            {
-              import esmeta.tracer.util.JsonProtocol.given
-              CachedTrace(
-                originalAliasName = "TODO",
-                absPath = s"${workdir.path}/${elemize(test, -1)}",
-                originalAbsPath = test.absPath,
-                kind = kind,
-              ).asJson
-            },
-            s"${workdir.path}/${elemize(test, -1)}.metadata",
-            silent = !(useStdout && !multiple),
-          )
 
         }
 
@@ -185,7 +200,9 @@ class JalangiBabelTest262Runner(
 
         override def postJob: Summary = {
           val summary = super.postJob
-          val logDir = s"${LOG_DIR}/test262-jalangi-babel"
+          val logDir =
+            if (useBabel) s"${LOG_DIR}/test262-jalangi-babel"
+            else s"${LOG_DIR}/test262-jalangi"
 
           // logging after tests
           if (log)
@@ -266,6 +283,25 @@ class JalangiBabelTest262Runner(
         test262.cfg.init.from(code, ast),
         timeLimit = timeLimit,
       ).result
+    }
+
+    def runJalangi(tmpFilePath: String): (Int, String, String) = {
+      try {
+        executeCmdTimeout(
+          s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi.js --analysis ${ANALYSIS_JALANGI_FILE_PATH} $tmpFilePath",
+          duration = 60.seconds,
+        ).getOrElse(
+          throw java.util.concurrent.TimeoutException(
+            "Jalangi timed out, maybe because of ES6+ features?",
+          ),
+        )
+      } catch {
+        case e: Throwable =>
+          printlnIfSingle(
+            s"Error in Jalangi Test262 Test: ${e.getStackTrace()}",
+          )
+          throw e;
+      }
     }
 
     def runJalangiBabel(tmpFilePath: String): (Int, String, String) = {
