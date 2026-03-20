@@ -3,14 +3,11 @@ package visitor
 
 import TraceDiff.*
 
-/** ESMeta emits prefix/postfix increment/decrement as:
-  *   [LeftOnly] L: UnaryPre(prefix++)
-  *     `- [LeftOnly] L: Write(x)
-  * while DynaJS emits it as:
-  *   [RightOnly] R: UnaryPre(++)
-  *     `- [RightOnly] R: BinaryPre(+)
-  *          `- [RightOnly] R: Write(x)
-  * This filter marks both sides as Ignored so they are treated as equivalent.
+/** ESMeta emits prefix/postfix increment/decrement as: [LeftOnly] L:
+  * UnaryPre(prefix++) `- [LeftOnly] L: Write(x) while DynaJS emits it as:
+  * [RightOnly] R: UnaryPre(++) `- [RightOnly] R: BinaryPre(+) `- [RightOnly] R:
+  * Write(x) This filter marks both sides as Ignored so they are treated as
+  * equivalent.
   *
   * @notes
   *   this should be used as late as possible in the pipeline
@@ -68,7 +65,9 @@ final class DynaJSIncDecOperators extends TreeVisitor {
     val replacement = Vector.newBuilder[DiffNode]
     replacement += ignoreSubtree(node, Side.Left)
     for (j <- 1 until foundOffset) {
-      replacement += cursor.peek(j).get // pass through intermediate Ignored nodes
+      replacement += cursor
+        .peek(j)
+        .get // pass through intermediate Ignored nodes
     }
     replacement += ignoreSubtree(cursor.peek(foundOffset).get, Side.Right)
 

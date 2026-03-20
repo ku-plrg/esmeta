@@ -357,7 +357,7 @@ class TraceDumper(
             throw NotSupported(
               "The test may include new features not supported by NodeProf",
             )
-          (s, err) 
+          (s, err)
           // maybe test includes new features not supported by Jalangi
         } catch {
           case e: Throwable =>
