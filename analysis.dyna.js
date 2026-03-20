@@ -14,6 +14,9 @@
     }
 
     function specToString(val) {
+        if (typeof val === 'symbol') {
+            return val.toString();
+        }
         return String(new String(val));
     }
 
