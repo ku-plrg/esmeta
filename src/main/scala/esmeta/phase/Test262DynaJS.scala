@@ -58,6 +58,7 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
       removed,
       isTest262,
       timeLimit = Some(60000),
+      comparePartial = config.comparePartial,
     )(using test262, workdir).test
   }
 
@@ -102,6 +103,11 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
+    (
+      "compare-partial",
+      BoolOption(_.comparePartial = _),
+      "compare partial results (e.g., only final states) instead of full results (default: true).",
+    ),
   )
   case class Config(
     var test262Target: Option[String] = None,
@@ -111,5 +117,6 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
+    var comparePartial: Boolean = true,
   )
 }

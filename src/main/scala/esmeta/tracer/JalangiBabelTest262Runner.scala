@@ -288,7 +288,7 @@ class JalangiBabelTest262Runner(
     def runJalangi(tmpFilePath: String): (Int, String, String) = {
       try {
         executeCmdTimeout(
-          s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi.js --analysis ${ANALYSIS_JALANGI_FILE_PATH} $tmpFilePath",
+          s"JALANGI_ANALYSIS=${ANALYSIS_JALANGI_FILE_PATH} jalangi-inject node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath",
           duration = 60.seconds,
         ).getOrElse(
           throw java.util.concurrent.TimeoutException(
@@ -307,7 +307,7 @@ class JalangiBabelTest262Runner(
     def runJalangiBabel(tmpFilePath: String): (Int, String, String) = {
       try {
         executeCmdTimeout(
-          s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi_babel.js --analysis ${ANALYSIS_JALANGI_FILE_PATH} $tmpFilePath",
+          s"JALANGI_BABEL=1 JALANGI_ANALYSIS=${ANALYSIS_JALANGI_FILE_PATH} jalangi-inject node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath",
           duration = 60.seconds,
         ).getOrElse(
           throw java.util.concurrent.TimeoutException(

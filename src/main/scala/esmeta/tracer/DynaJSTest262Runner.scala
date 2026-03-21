@@ -30,6 +30,7 @@ class DynaJSTest262Runner(
   // targetTracer: Set[TargetKind] = Set(),
   handleNotSupportedAsFail: Boolean = false,
   useStdout: Boolean = true,
+  comparePartial: Boolean = true,
 )(using
   test262: Test262,
   workdir: WorkDir,
@@ -135,7 +136,7 @@ class DynaJSTest262Runner(
                 raise(
                   s"DynaJS failed. Expected 0 but got partial: ${c1}, full: ${c2}.",
                 )
-            if (oPartial != oFull) {
+            if (comparePartial && oPartial != oFull) {
               printlnIfSingle(s"DynaJS compare: partial | full")
               printlnIfSingle(Diff.get(oPartial, oFull))
               raise(
