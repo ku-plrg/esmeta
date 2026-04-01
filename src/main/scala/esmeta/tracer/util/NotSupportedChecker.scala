@@ -20,7 +20,7 @@ class NotSupportedChecker(
     timeLimit = timeLimit,
   ) {
 
-  val ns = Set("PerformEval")
+  val ns = Set[String]() // Set("PerformEval")
 
   lazy val cfg = st.cfg
 
