@@ -43,10 +43,17 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
       if (cmdConfig.targets.isEmpty) None
       else Some(cmdConfig.targets)
 
+    if (config.analysisFilePath.isBlank()) {
+      // throw an error for now
+      raise(
+        s"The analysis file path must be specified using the -$name:analysis option.",
+      )
+    }
+
     if (config.timeLimit.isDefined && config.concurrent == CP.Auto)
       raise(
-        "Turing on both time limit option (-test262-test:timeout and " +
-        "the concurrent mode (-test262-test:concurrent) with " +
+        s"Turing on both time limit option (-$name:timeout and " +
+        s"the concurrent mode (-$name:concurrent) with " +
         "automatic thread number is not allowed.",
       )
 
@@ -59,6 +66,7 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
       isTest262,
       timeLimit = Some(60000),
       comparePartial = config.comparePartial,
+      analysisFilePath = config.analysisFilePath,
     )(using test262, workdir).test
   }
 
@@ -108,6 +116,11 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
       BoolOption(_.comparePartial = _),
       "compare partial results (e.g., only final states) instead of full results (default: true).",
     ),
+    (
+      "analysis",
+      StrOption((c, s) => c.analysisFilePath = s),
+      "set the path to the DynaJS analysis file (default: built-in analysis file).",
+    ),
   )
   case class Config(
     var test262Target: Option[String] = None,
@@ -118,5 +131,6 @@ case object Test262DynaJS extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     var comparePartial: Boolean = true,
+    var analysisFilePath: String = "",
   )
 }

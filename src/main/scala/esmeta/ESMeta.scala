@@ -5,11 +5,14 @@ import esmeta.phase.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
+var COMMAND_GIVEN: String = ""
+
 /** ESMeta top-level object */
 object ESMeta extends Git(BASE_DIR) {
 
   /** the main entry point of ESMeta. */
   def main(tokens: Array[String]): Unit = try
+    COMMAND_GIVEN = tokens.mkString(" ")
     tokens.toList match
       case Nil                                        => println(welcome)
       case List("--version" | "-version" | "version") => println(VERSION)

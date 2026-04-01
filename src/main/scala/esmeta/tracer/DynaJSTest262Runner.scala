@@ -31,10 +31,14 @@ class DynaJSTest262Runner(
   handleNotSupportedAsFail: Boolean = false,
   useStdout: Boolean = true,
   comparePartial: Boolean = true,
+  analysisFilePath: String,
 )(using
   test262: Test262,
   workdir: WorkDir,
 ) { jalangi =>
+
+  val currentTime: String =
+    java.time.LocalDateTime.now().toString().replace(":", "-")
 
   // lazy val targetNodeprof: Boolean = targetTracer.contains(TargetKind.NodeProf)
   lazy val targetDynaJS: Boolean =
@@ -205,7 +209,7 @@ class DynaJSTest262Runner(
 
         override def postJob: Summary = {
           val summary = super.postJob
-          val logDir = s"${LOG_DIR}/test262-dynajs"
+          val logDir = s"${LOG_DIR}/test262-dynajs/${currentTime}"
 
           // logging after tests
           if (log)
@@ -214,6 +218,12 @@ class DynaJSTest262Runner(
               s"Jalangi test summary",
               summary.toString,
               s"$logDir/summary",
+              silent = !(useStdout && !multiple),
+            )
+            dumpFile(
+              s"Command used to run the tests",
+              COMMAND_GIVEN,
+              s"$logDir/command",
               silent = !(useStdout && !multiple),
             )
 
@@ -290,10 +300,14 @@ class DynaJSTest262Runner(
 
     def runDynaJS(tmpFilePath: String, full: Boolean): (Int, String, String) = {
       val DYNAJS_PARTIAL_HOOK = if full then "--full" else "--partial"
+      // moving this
+      val targetAnalysis =
+        if (analysisFilePath == "") then ANALYSIS_DYNAJS_FILE_PATH
+        else analysisFilePath
       try {
         val (exitcode, s, err) =
           val command =
-            s"DYNAJS_OPTIONS='--analysis $ANALYSIS_DYNAJS_FILE_PATH $DYNAJS_PARTIAL_HOOK' dynajs node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath"
+            s"DYNAJS_OPTIONS='--analysis $targetAnalysis $DYNAJS_PARTIAL_HOOK' dynajs node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath"
           printlnIfSingle(s"Running DynaJS with command: ${command}")
           executeCmdTimeout(
             command,
