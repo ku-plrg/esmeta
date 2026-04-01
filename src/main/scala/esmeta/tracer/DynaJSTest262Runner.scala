@@ -289,11 +289,11 @@ class DynaJSTest262Runner(
     }
 
     def runDynaJS(tmpFilePath: String, full: Boolean): (Int, String, String) = {
-      val DYNAJS_PARTIAL_HOOK = if full then "" else "DYNAJS_PARTIAL_HOOK=1"
+      val DYNAJS_PARTIAL_HOOK = if full then "--full" else "--partial"
       try {
         val (exitcode, s, err) =
           val command =
-            s"$DYNAJS_PARTIAL_HOOK DYNAJS_ANALYSIS=$ANALYSIS_DYNAJS_FILE_PATH  dynajs node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath"
+            s"DYNAJS_OPTIONS='--analysis $ANALYSIS_DYNAJS_FILE_PATH $DYNAJS_PARTIAL_HOOK' dynajs node --require ${BOOTSTRAP_NODE_JS} $tmpFilePath"
           printlnIfSingle(s"Running DynaJS with command: ${command}")
           executeCmdTimeout(
             command,
