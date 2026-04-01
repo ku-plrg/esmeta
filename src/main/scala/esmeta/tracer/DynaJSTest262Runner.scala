@@ -93,17 +93,16 @@ class DynaJSTest262Runner(
 
           printlnIfSingle(s"Running Jalangi for ${tmpFilePath}")
 
-          val isES5 = Aux.checkES5(tmpFilePath)
           val isValid = Aux.checkRequirements(tmpFilePath) match
             case (false, str, err) => false
             case _                 => true
-          val isAvailableForJalangi = isES5 && isValid
           val isAvailableForDynaJS = isValid
           val isAvailableForNodeProf = isValid
 
-          Aux.runNodeJs(tmpFilePath) match
-            case false => throw NotSupported("Does not pass Node.js")
-            case true  => ()
+          // pass this for now
+          // Aux.runNodeJs(tmpFilePath) match
+          //   case false => throw NotSupported("Does not pass Node.js")
+          //   case true  => ()
 
           // keep this to check if ESMeta-not-supported features exist
           try {
