@@ -133,7 +133,17 @@ class Extractor(
     ul: Element,
   ): List[Algorithm] =
     val head = extractSdoHead(clause, ul)
-    val baseCode = ul.html.unescapeHtml
+    // XXX temporarily flatten <li> items containing block-level elements
+    // (e.g., <p>, nested <ul>, <emu-alg>) into single-line plain text so
+    // that they become yet-rules instead of failing the whole clause
+    val blockTags = Set("p", "ul", "emu-alg", "emu-note")
+    val flattened = ul.clone
+    for {
+      li <- flattened.getChildren
+      if li.getChildren.exists(c => blockTags contains c.tagName)
+    } li.html(li.text)
+    val baseCode = flattened.html.unescapeHtml
+
     try {
       val body = parser.parseBy(parser.earlyErrorRuleStep)(baseCode)
       // TODO : handle list
