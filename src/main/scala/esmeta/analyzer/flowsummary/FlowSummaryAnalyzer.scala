@@ -43,8 +43,8 @@ class FlowSummaryAnalyzer(
 
   def viewRule(detail: Boolean): Rule[View] = (app, view) =>
     view match
-      case View.Entry     => app
-      case View.Merged    => app >> "merged"
+      case View.Entry      => app
+      case View.Merged     => app >> "merged"
       case _: View.Context => app >> "ctx"
 
   val emptyView: View = View.Entry
@@ -121,7 +121,8 @@ class FlowSummaryAnalyzer(
   // implementation for the general analyzer
   // ---------------------------------------------------------------------------
   /** ids of views in the order they are created, for a total order */
-  private val viewIds = mutable.Map[View, Int](View.Entry -> 0, View.Merged -> 1)
+  private val viewIds =
+    mutable.Map[View, Int](View.Entry -> 0, View.Merged -> 1)
   def viewId(view: View): Int = viewIds.getOrElseUpdate(view, viewIds.size)
 
   /** a total order of control points, so that results do not depend on the

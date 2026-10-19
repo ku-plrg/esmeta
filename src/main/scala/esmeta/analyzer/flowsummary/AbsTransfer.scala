@@ -33,13 +33,19 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
           val c = eval(br.cond)(using ctx(st))
           val (t, e) = refine(br.cond, st.locals)
           if (c.canBeTrue)
-            br.thenNode.foreach(to => analyzer += np.copy(node = to) -> AbsState(t))
+            br.thenNode.foreach(to =>
+              analyzer += np.copy(node = to) -> AbsState(t),
+            )
           if (c.canBeFalse)
-            br.elseNode.foreach(to => analyzer += np.copy(node = to) -> AbsState(e))
+            br.elseNode.foreach(to =>
+              analyzer += np.copy(node = to) -> AbsState(e),
+            )
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit =
-      for (callerNp <- retEdges.getOrElse(rp, Set()).toList.sorted(using cpOrder))
+      for (
+        callerNp <- retEdges.getOrElse(rp, Set()).toList.sorted(using cpOrder)
+      )
         propagate(rp, callerNp)
 
     /** propagate the result of a callee to a caller */
@@ -101,9 +107,10 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
           // results of syntax-directed operations derive from the source text
           args.foreach(eval)
           toStr(eval(base))
-      if (!result.isBottom) for (next <- call.next)
-        analyzer += callerNp.copy(node = next) ->
-        st.define(localName(call.lhs), result)
+      if (!result.isBottom)
+        for (next <- call.next)
+          analyzer += callerNp.copy(node = next) ->
+          st.define(localName(call.lhs), result)
 
     /** call a function through its CFG */
     def doCall(
@@ -117,9 +124,12 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
         val view = contextOf(fname, args, captured)
         val (vs, cap) = view match
           case View.Context(vs, cap) => (vs, cap)
-          case _ => (args.map(stripKeys(_)), captured.map((k, v) => k -> stripKeys(v)))
+          case _ =>
+            (args.map(stripKeys(_)), captured.map((k, v) => k -> stripKeys(v)))
         val params = callee.params.zip(vs).map((p, a) => p.lhs.name -> a)
-        analyzer += NodePoint(callee, callee.entry, view) -> AbsState(cap ++ params)
+        analyzer += NodePoint(callee, callee.entry, view) -> AbsState(
+          cap ++ params,
+        )
         for ((callerNp, callerSt) <- caller)
           callInfo += callerNp -> callerSt
           val rp = ReturnPoint(callee, view)
@@ -135,8 +145,9 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
       )
       val views = contexts.getOrElse(fname, Set())
       if (views.contains(view)) view
-      else if (views.size < maxContexts) { contexts(fname) = views + view; view }
-      else View.Merged
+      else if (views.size < maxContexts) {
+        contexts(fname) = views + view; view
+      } else View.Merged
 
     /** record a return value */
     def doReturn(v: AbsVal)(using np: NodePoint[?]): Unit =
@@ -164,7 +175,11 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
       val nv = old ⊔ stripKeys(v.present, dropWithout = false)
       if (nv != old)
         heap(l) = obj + (k -> nv)
-        readers.getOrElse(l, Set()).toList.sorted(using cpOrder).foreach(worklist += _)
+        readers
+          .getOrElse(l, Set())
+          .toList
+          .sorted(using cpOrder)
+          .foreach(worklist += _)
 
     def addFlow(flow: Flow): Unit =
       if (flow.input != flow.output) flows += flow
@@ -217,13 +232,16 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
       * as plain array elements
       */
     def props(l: Loc): Iterable[(String, AbsVal)] =
-      for (case (KProp(c), v) <- heapObj(l)) yield
-        if (c != WithElem) (c, v)
-        else
-          val srcs = v.srcs.map(s => s.copy(path = s.path.init.add("ArrayElement")))
-          ("ArrayElement", v.copy(srcs = srcs))
+      for (case (KProp(c), v) <- heapObj(l))
+        yield
+          if (c != WithElem) (c, v)
+          else
+            val srcs =
+              v.srcs.map(s => s.copy(path = s.path.init.add("ArrayElement")))
+            ("ArrayElement", v.copy(srcs = srcs))
 
-    /** `key` identifies the key expression, to detect index-preserving copies */
+    /** `key` identifies the key expression, to detect index-preserving copies
+      */
     def readProp(
       obj: AbsVal,
       content: String,
@@ -300,11 +318,12 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
           iter
         case "IteratorStep" => arg(0)
         case "IteratorStepValue" | "IteratorValue" =>
-          val v = arg(0).locs.foldLeft(AbsVal.Bot)(_ ⊔ heapRead(_, KField(iterElem)))
+          val v =
+            arg(0).locs.foldLeft(AbsVal.Bot)(_ ⊔ heapRead(_, KField(iterElem)))
           if (v.isBottom) AbsVal.Clean else v
-        case "GetMethod"             => AbsVal.Clean
-        case "CreateBuiltinFunction" => arg(0)
-        case "ThrowCompletion"       => AbsVal.Bot
+        case "GetMethod"                                  => AbsVal.Clean
+        case "CreateBuiltinFunction"                      => arg(0)
+        case "ThrowCompletion"                            => AbsVal.Bot
         case "ToString" | "ToPrimitive" | "ToPropertyKey" => toStr(arg(0))
         case "IsArray" =>
           val tested = argExprs.headOption.collect {
@@ -338,7 +357,7 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
         case "Invoke" =>
           val f = readProp(arg(0), contentOf(arg(1)))
           callJS(f, arg(0), args.lift(2).getOrElse(AbsVal.Bot))
-        case _ => return None
+        case _ => return None,
       )
 
     def toStr(v: AbsVal): AbsVal = v.cst match
@@ -377,9 +396,9 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
       given Ctx = ctx(st)
       val locals = st.locals
       inst match
-        case IExpr(EYet(msg)) => yetAssign(msg, st)
-        case IExpr(expr)      => eval(expr); st
-        case ILet(x, expr)    => st.define(x.name, eval(expr))
+        case IExpr(EYet(msg))   => yetAssign(msg, st)
+        case IExpr(expr)        => eval(expr); st
+        case ILet(x, expr)      => st.define(x.name, eval(expr))
         case IAssign(ref, expr) => assign(ref, eval(expr), st)
         case IAssert(cond) =>
           AbsState(locals ++ compChecked(cond).map(compMark(_) -> AbsVal.Clean))
@@ -418,7 +437,7 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
 
     def assign(ref: Ref, v: AbsVal, st: AbsState)(using Ctx): AbsState =
       ref match
-        case x: Local => st.define(localName(x), v)
+        case x: Local  => st.define(localName(x), v)
         case Global(_) => st
         case Field(base, kexpr) =>
           val bv = evalRef(base)
@@ -452,7 +471,9 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
         case None => st
 
     def yetValue(vars: List[String], locals: Locals): AbsVal =
-      vars.flatMap(locals.get).foldLeft(AbsVal.Clean)((acc, v) => acc ⊔ toStr(v))
+      vars
+        .flatMap(locals.get)
+        .foldLeft(AbsVal.Clean)((acc, v) => acc ⊔ toStr(v))
 
     // =========================================================================
     // expressions
@@ -476,8 +497,9 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
     def transfer(st: AbsState, vop: VOp, vs: List[AbsValue])(using
       np: NodePoint[Node],
     ): AbsValue = vop match
-      case VOp.Concat => AbsValue(vs.foldLeft(AbsVal.Clean)((a, v) => a ⊔ toStr(v.v)))
-      case _          => AbsValue.Top
+      case VOp.Concat =>
+        AbsValue(vs.foldLeft(AbsVal.Clean)((a, v) => a ⊔ toStr(v.v)))
+      case _ => AbsValue.Top
 
     def transfer(st: AbsState, mop: MOp, vs: List[AbsValue])(using
       np: NodePoint[Node],

@@ -25,7 +25,8 @@ object QLPrinter {
       case Static(b, n) =>
         s"""result = DataFlow::globalVarRef("$b").getAMemberCall("$n")"""
 
-  private val methodPattern = """INTRINSICS\.([A-Za-z]+)\.prototype\.([A-Za-z]+)""".r
+  private val methodPattern =
+    """INTRINSICS\.([A-Za-z]+)\.prototype\.([A-Za-z]+)""".r
   private val staticPattern = """INTRINSICS\.([A-Za-z]+)\.([A-Za-z]+)""".r
 
   /** the JavaScript callee of a built-in function name */

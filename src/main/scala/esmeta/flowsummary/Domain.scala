@@ -61,10 +61,11 @@ enum Lit:
   override def hashCode: Int = scala.util.hashing.MurmurHash3.productHash(this)
 
   def toDouble: Option[Double] = this match
-    case LNum(d)   => Some(d)
-    case LMath(n)  => Some(n.toDouble)
-    case LInf(pos) => Some(if (pos) Double.PositiveInfinity else Double.NegativeInfinity)
-    case _         => None
+    case LNum(d)  => Some(d)
+    case LMath(n) => Some(n.toDouble)
+    case LInf(pos) =>
+      Some(if (pos) Double.PositiveInfinity else Double.NegativeInfinity)
+    case _ => None
 
 /** flat lattice of constants */
 enum Cst:
@@ -126,14 +127,14 @@ case class AbsVal(
   def toTaint: AbsVal = AbsVal(srcs = srcs.map(_.toTaint), cst = Cst.Top)
   def present: AbsVal = copy(maybeAbsent = false)
   def canBeTrue: Boolean = cst match
-    case Cst.Bot                 => false
-    case Cst.One(Lit.LBool(b))   => b
-    case _                       => true
+    case Cst.Bot               => false
+    case Cst.One(Lit.LBool(b)) => b
+    case _                     => true
   def canBeFalse: Boolean = cst match
-    case Cst.Bot                 => false
-    case Cst.One(Lit.LBool(b))   => !b
-    case Cst.One(_)              => false
-    case Cst.Top                 => true
+    case Cst.Bot               => false
+    case Cst.One(Lit.LBool(b)) => !b
+    case Cst.One(_)            => false
+    case Cst.Top               => true
 object AbsVal:
   val Unknown = -1
   val Empty = Int.MaxValue

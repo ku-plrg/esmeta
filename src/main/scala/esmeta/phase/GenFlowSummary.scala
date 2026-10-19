@@ -56,8 +56,8 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
         r <- results
         if r.yets.nonEmpty || r.warnings.nonEmpty
       } yield (s"## ${QLPrinter.prettyName(r.name)}" ::
-        r.yets.toList.sorted.map(y => s"- yet: $y") :::
-        r.warnings.toList.sorted.map(w => s"- warning: $w"))
+      r.yets.toList.sorted.map(y => s"- yet: $y") :::
+      r.warnings.toList.sorted.map(w => s"- warning: $w"))
         .mkString(LINE_SEP)).mkString(LINE_SEP + LINE_SEP),
       filename = s"$out/notes.md",
     )

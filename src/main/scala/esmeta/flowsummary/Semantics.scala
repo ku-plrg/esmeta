@@ -27,16 +27,46 @@ object Semantics {
   /** abstract operations whose results carry no data of interest */
   val cleanOps: Set[String] = Set(
     "__NEW_ERROR_OBJ__",
-    "ToNumber", "ToNumeric", "ToIntegerOrInfinity", "ToLength", "ToIndex",
-    "ToUint32", "ToInt32", "ToUint16", "ToInt16", "ToUint8", "ToInt8",
-    "ToUint8Clamp", "ToBoolean", "ToBigInt", "ToBigInt64", "ToBigUint64",
-    "LengthOfArrayLike", "HasProperty", "HasOwnProperty", "IsCallable",
-    "IsConstructor", "IsArray", "IsRegExp", "IsIntegralNumber", "SameValue",
-    "SameValueZero", "SameValueNonNumber", "IsStrictlyEqual", "IsLooselyEqual",
-    "IsLessThan", "DeletePropertyOrThrow", "IsConcatSpreadable",
-    "ValidateTypedArray", "TypedArrayLength", "IsTypedArrayOutOfBounds",
-    "MakeTypedArrayWithBufferWitnessRecord", "IsDetachedBuffer",
-    "StringIndexOf", "StringLastIndexOf", "IsStringWellFormedUnicode",
+    "ToNumber",
+    "ToNumeric",
+    "ToIntegerOrInfinity",
+    "ToLength",
+    "ToIndex",
+    "ToUint32",
+    "ToInt32",
+    "ToUint16",
+    "ToInt16",
+    "ToUint8",
+    "ToInt8",
+    "ToUint8Clamp",
+    "ToBoolean",
+    "ToBigInt",
+    "ToBigInt64",
+    "ToBigUint64",
+    "LengthOfArrayLike",
+    "HasProperty",
+    "HasOwnProperty",
+    "IsCallable",
+    "IsConstructor",
+    "IsArray",
+    "IsRegExp",
+    "IsIntegralNumber",
+    "SameValue",
+    "SameValueZero",
+    "SameValueNonNumber",
+    "IsStrictlyEqual",
+    "IsLooselyEqual",
+    "IsLessThan",
+    "DeletePropertyOrThrow",
+    "IsConcatSpreadable",
+    "ValidateTypedArray",
+    "TypedArrayLength",
+    "IsTypedArrayOutOfBounds",
+    "MakeTypedArrayWithBufferWitnessRecord",
+    "IsDetachedBuffer",
+    "StringIndexOf",
+    "StringLastIndexOf",
+    "IsStringWellFormedUnicode",
   )
 
   val WithElem = "WithArrayElement"
@@ -104,9 +134,9 @@ object Semantics {
       }
       v.copy(srcs = srcs, isArrayOf = Set())
 
-  /** CodeQL turns value flow that reads an unknown array index into taint
-    * flow from the array itself (`TaintTrackingPrivate.qll`), but not reads of
-    * a known index or `WithArrayElement`; add those taint flows explicitly.
+  /** CodeQL turns value flow that reads an unknown array index into taint flow
+    * from the array itself (`TaintTrackingPrivate.qll`), but not reads of a
+    * known index or `WithArrayElement`; add those taint flows explicitly.
     */
   def implicitTaint(flows: Set[Flow]): Set[Flow] =
     flows ++ (for {
