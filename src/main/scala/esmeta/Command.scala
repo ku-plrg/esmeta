@@ -111,6 +111,16 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   )
 }
 
+/** `gen-flow-summary` command */
+case object CmdGenFlowSummary
+  extends Command("gen-flow-summary", CmdBuildCFG >> GenFlowSummary) {
+  val help = "derives CodeQL flow summaries of built-in functions."
+  val examples = List(
+    "esmeta gen-flow-summary                                  # default targets",
+    "esmeta gen-flow-summary -gen-flow-summary:target='.*flatMap' # one function",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------
