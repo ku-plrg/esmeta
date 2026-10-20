@@ -297,10 +297,14 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
       caller: String,
     ): Option[AbsVal] =
       def arg(i: Int): AbsVal = args.lift(i).getOrElse(AbsVal(LUndef))
-      // the key variable of a property access, if any
-      def keyTag(i: Int): Option[String] = argExprs.lift(i).collect {
-        case ERef(x: Local) => s"$caller:${localName(x)}"
-      }
+      // the key variable of a property access, to detect index-preserving
+      // copies (intent: `with-element`)
+      def keyTag(i: Int): Option[String] =
+        if (!intent.contains(Intent.WithElement)) None
+        else
+          argExprs.lift(i).collect {
+            case ERef(x: Local) => s"$caller:${localName(x)}"
+          }
       Some(fname match
         case "NormalCompletion" | "Completion" | "ToObject" |
             "RequireObjectCoercible" =>
@@ -325,7 +329,9 @@ trait AbsTransferDecl { analyzer: FlowSummaryAnalyzer =>
         case "CreateBuiltinFunction"                      => arg(0)
         case "ThrowCompletion"                            => AbsVal.Bot
         case "ToString" | "ToPrimitive" | "ToPropertyKey" => toStr(arg(0))
-        case "IsArray" =>
+        // remember the tested local to refine its branches
+        // (intent: `without-element`)
+        case "IsArray" if intent.contains(Intent.WithoutElement) =>
           val tested = argExprs.headOption.collect {
             case ERef(x: Local) => localName(x)
           }

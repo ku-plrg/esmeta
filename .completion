@@ -18,7 +18,7 @@ _esmeta_completions() {
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:type-sens -tycheck:infer-guard -tycheck:effect"
-  genflowsummaryOpt="-gen-flow-summary:target -gen-flow-summary:out"
+  genflowsummaryOpt="-gen-flow-summary:target -gen-flow-summary:out -gen-flow-summary:intent"
   parseOpt="-parse:debug -parse:goal"
   evalOpt="-eval:timeout -eval:multiple -eval:tycheck -eval:log -eval:detail-log"
   webOpt="-web:host -web:port"

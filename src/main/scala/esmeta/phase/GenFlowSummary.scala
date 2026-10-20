@@ -21,7 +21,7 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
       .filter(f => f.isBuiltin && target.matches(f.name))
       .sortBy(_.name)
     val results = for (f <- builtins) yield
-      val analyzer = FlowSummaryAnalyzer(cfg, f)
+      val analyzer = FlowSummaryAnalyzer(cfg, f, config.intent)
       val res =
         try analyzer.result
         catch
@@ -37,7 +37,8 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
       name = "flow summaries (QL)",
       data = QLPrinter(
         results.map(r => r.name -> r.flows),
-        s"ECMA-262 version: $version",
+        s"ECMA-262 version: $version, CodeQL intent rules: " +
+        Intent.show(config.intent),
       ),
       filename = s"$out/EsmetaBuiltins.qll",
     )
@@ -52,13 +53,13 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
     )
     dumpFile(
       name = "analysis notes",
-      data = (for {
+      data = (s"CodeQL intent rules: ${Intent.show(config.intent)}" :: (for {
         r <- results
         if r.yets.nonEmpty || r.warnings.nonEmpty
       } yield (s"## ${QLPrinter.prettyName(r.name)}" ::
       r.yets.toList.sorted.map(y => s"- yet: $y") :::
       r.warnings.toList.sorted.map(w => s"- warning: $w"))
-        .mkString(LINE_SEP)).mkString(LINE_SEP + LINE_SEP),
+        .mkString(LINE_SEP))).mkString(LINE_SEP + LINE_SEP),
       filename = s"$out/notes.md",
     )
 
@@ -74,10 +75,17 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
       StrOption((c, s) => c.out = s),
       "output directory.",
     ),
+    (
+      "intent",
+      StrListOption((c, l) => c.intent = Intent.parse(l)),
+      "CodeQL intent rules to apply: `all`, `none` (default), or a list of " +
+      Intent.values.map(i => s"`${i.name}` (${i.desc})").mkString(", ") + ".",
+    ),
   )
   case class Config(
     var target: String =
       """INTRINSICS\.(Array|String)\.prototype\.[A-Za-z]+|INTRINSICS\.(Array|Object|JSON|String)\.[A-Za-z]+""",
     var out: String = s"$LOG_DIR/flow-summary",
+    var intent: Set[Intent] = Set(),
   )
 }

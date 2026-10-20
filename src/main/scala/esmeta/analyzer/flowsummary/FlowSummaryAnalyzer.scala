@@ -23,6 +23,7 @@ import scala.collection.mutable
 class FlowSummaryAnalyzer(
   val cfg: CFG,
   val target: Func,
+  val intent: Set[Intent] = Set(),
   val maxDepth: Int = 3,
 ) extends Analyzer
   with AbsTransferDecl {
@@ -195,7 +196,10 @@ class FlowSummaryAnalyzer(
       case AbsRet(ret) => transfer.flowsTo(ret, APath(Root.Ret), 0)
     Summary(
       target.name,
-      subsume(implicitTaint(flows.toSet)),
+      subsume(
+        if (intent.contains(Intent.ExplicitTaint)) implicitTaint(flows.toSet)
+        else flows.toSet,
+      ),
       yets.toSet,
       warnings.toSet,
     )
