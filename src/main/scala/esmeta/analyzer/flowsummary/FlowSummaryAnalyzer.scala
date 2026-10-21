@@ -1,13 +1,14 @@
 package esmeta.analyzer.flowsummary
 
+import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.flowsummary.{Path => APath, *}
-import esmeta.flowsummary.Key.*
-import esmeta.flowsummary.Lit.*
 import esmeta.flowsummary.Semantics.*
+import esmeta.ir.{Local, Name}
 import esmeta.util.{Loc => _, *}
-import esmeta.util.Appender.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import scala.collection.mutable
 
 /** Derives CodeQL flow summaries of a built-in function by abstract
@@ -25,101 +26,31 @@ class FlowSummaryAnalyzer(
   val target: Func,
   val intent: Set[Intent] = Set(),
   val maxDepth: Int = 3,
+  val log: Boolean = false,
+  val detail: Boolean = false,
+  override val useRepl: Boolean = false,
+  override val replContinue: Boolean = false,
 ) extends Analyzer
-  with AbsTransferDecl {
-
-  val log: Boolean = false
-  def logging: Unit = ()
-
-  // ---------------------------------------------------------------------------
-  // views: calling contexts
-  // ---------------------------------------------------------------------------
-  enum View extends ViewLike:
-    case Entry
-    case Context(args: List[AbsVal], captured: Locals)
-    case Merged // too many contexts: all others are joined
-    def isEmpty: Boolean = this == Entry
-    override def hashCode: Int =
-      scala.util.hashing.MurmurHash3.productHash(this)
-
-  def viewRule(detail: Boolean): Rule[View] = (app, view) =>
-    view match
-      case View.Entry      => app
-      case View.Merged     => app >> "merged"
-      case _: View.Context => app >> "ctx"
-
-  val emptyView: View = View.Entry
-  def getEntryView(view: View): View = view
-
-  // ---------------------------------------------------------------------------
-  // domains
-  // ---------------------------------------------------------------------------
-  case class AbsValue(v: AbsVal) extends AbsValueLike:
-    def getString(state: AbsState): String = v.toString
-  object AbsValue extends DomainLike[AbsValue]:
-    val Top: AbsValue = AbsValue(AbsVal.Clean)
-    val Bot: AbsValue = AbsValue(AbsVal.Bot)
-    given rule: Rule[AbsValue] = (app, elem) => app >> elem.v.toString
-
-  case class AbsState(reachable: Boolean, locals: Locals) extends AbsStateLike:
-    def hasImprec: Boolean = false
-    def isBottom: Boolean = !reachable
-    def ⊔(that: AbsState): AbsState =
-      if (!reachable) that
-      else if (!that.reachable) this
-      else AbsState(true, joinLocals(locals, that.locals))
-    def define(x: String, v: AbsVal): AbsState =
-      copy(locals = locals - compMark(x) + (x -> v))
-  object AbsState extends DomainLike[AbsState]:
-    val Top: AbsState = AbsState(true, Map())
-    val Bot: AbsState = AbsState(false, Map())
-    def apply(locals: Locals): AbsState = AbsState(true, locals)
-    given rule: Rule[AbsState] = (app, elem) =>
-      if (!elem.reachable) app >> "⊥"
-      else app >> elem.locals.toList.sortBy(_._1).mkString("{", ", ", "}")
-
-  case class AbsRet(ret: AbsVal) extends AbsRetLike:
-    def value: AbsValue = AbsValue(ret)
-  object AbsRet extends DomainLike[AbsRet]:
-    val Top: AbsRet = AbsRet(AbsVal.Clean)
-    val Bot: AbsRet = AbsRet(AbsVal.Bot)
-    given rule: Rule[AbsRet] = (app, elem) => app >> elem.ret.toString
-
-  case class Effect() extends EffectLike
-  object Effect extends DomainLike[Effect]:
-    val Top: Effect = Effect()
-    val Bot: Effect = Effect()
-    given rule: Rule[Effect] = (app, _) => app
-
-  // ---------------------------------------------------------------------------
-  // analysis state
-  // ---------------------------------------------------------------------------
-  /** flow-insensitive heap of objects allocated during the call */
-  val heap = mutable.Map[Loc, Map[Key, AbsVal]]()
-
-  /** control points that read each heap location */
-  val readers = mutable.Map[Loc, Set[ControlPoint]]()
-
-  /** calling contexts of each function */
-  val contexts = mutable.Map[String, Set[View]]()
-
-  val flows = mutable.Set[Flow]()
-  val yets = mutable.Set[String]()
-  val warnings = mutable.Set[String]()
-  def warn(msg: String): Unit = warnings += msg
+  with AbsValueDecl
+  with AbsStateDecl
+  with AbsRetDecl
+  with AbsTransferDecl
+  with ViewDecl
+  with EffectDecl {
 
   /** the entry state of the built-in */
-  private val entrySt: AbsState = AbsState(
-    Map(
-      "this" -> AbsVal.src(APath(Root.This)),
-      "ArgumentsList" -> AbsVal(rest = Set(0), cst = Cst.Top),
-      "NewTarget" -> AbsVal(LUndef),
+  npMap = Map(
+    NodePoint(target, target.entry, emptyView) -> AbsState(
+      Map(
+        Name("this") -> AbsValue.src(APath(Root.This)),
+        Name("ArgumentsList") -> AbsValue(rest = Set(0), cst = Cst.Top),
+        Name("NewTarget") -> AbsValue(Lit.LUndef),
+      ),
     ),
   )
-  npMap = Map(NodePoint(target, target.entry, emptyView) -> entrySt)
 
   // ---------------------------------------------------------------------------
-  // implementation for the general analyzer
+  // Implementation for General Analyzer
   // ---------------------------------------------------------------------------
   /** ids of views in the order they are created, for a total order */
   private val viewIds =
@@ -134,41 +65,85 @@ class FlowSummaryAnalyzer(
     case ReturnPoint(f, v)  => (f.id, Int.MaxValue, viewId(v))
   }
 
+  /** worklist of control points */
   val worklist: Worklist[ControlPoint] =
     PriorityQueueWorklist(npMap.keySet)(using cpOrder)
+
+  /** abstract transfer function */
   val transfer: AbsTransfer = new AbsTransfer
 
-  def reachable(np: NodePoint[Node]): Boolean = getResult(np).reachable
-  def reachable(rp: ReturnPoint): Boolean = rpMap.contains(rp)
+  /** check reachability of node points */
+  def reachable(np: NodePoint[Node]): Boolean = !getResult(np).isBottom
 
+  /** check reachability of return points */
+  def reachable(rp: ReturnPoint): Boolean = !getResult(rp).isBottom
+
+  /** get string for result of control points */
   def getString(
     cp: ControlPoint,
     color: Option[String] = None,
     detail: Boolean = false,
-  ): String = cp match
-    case np: NodePoint[_] => s"$cp -> ${getResult(np)}"
-    case rp: ReturnPoint  => s"$cp -> ${getResult(rp)}"
+  ): String =
+    val cpStr = cp.toString(detail = detail)
+    val k = color.fold(cpStr)(setColor(_)(cpStr))
+    cp match
+      case np: NodePoint[_] => s"$k -> ${getResult(np)}"
+      case rp: ReturnPoint  => s"$k -> ${getResult(rp)}"
+
+  /** log directory */
+  val logDir = s"$ANALYZE_LOG_DIR/flow-summary"
+
+  /** logging the current analysis result */
+  def logging: Unit =
+    mkdir(logDir)
+    val heapStrs = heap.toList.sortBy(_._1.site).map { (l, obj) =>
+      val fields = obj.toList.map((k, v) => s"$k -> $v").sorted
+      s"  ${l.site} -> " + fields.mkString("{", ", ", "}")
+    }
+    dumpFile(
+      name = s"flow-summary analysis result of ${target.name}",
+      data = (getStrings(detail = detail) ++ (
+        if (heapStrs.isEmpty) Nil else "" :: "heap:" :: heapStrs
+      )).mkString(LINE_SEP),
+      filename = s"$logDir/${target.name}.log",
+      silent = true,
+    )
+
+  // ---------------------------------------------------------------------------
+  // Analysis State
+  // ---------------------------------------------------------------------------
+  /** flow-insensitive heap of objects allocated during the call */
+  val heap = mutable.Map[Loc, Map[Key, AbsValue]]()
+
+  /** control points that read each heap location */
+  val readers = mutable.Map[Loc, Set[ControlPoint]]()
+
+  /** calling contexts of each function */
+  val contexts = mutable.Map[String, Set[View]]()
+
+  val flows = mutable.Set[Flow]()
+  val yets = mutable.Set[String]()
+  val warnings = mutable.Set[String]()
+  def warn(msg: String): Unit = warnings += msg
 
   /** join a state into a node point, widening at loop heads */
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
-    val (np, inSt) = pair
-    if (inSt.reachable)
-      val old = getResult(np)
-      val newSt = np.node match
+    val (np, newSt) = pair
+    if (!newSt.isBottom)
+      val oldSt = getResult(np)
+      if (!oldSt.isBottom && useRepl) Repl.merged = true
+      val joined = np.node match
         case br: Branch if br.isLoop =>
-          if (!old.reachable)
-            AbsState(preWiden(loopAssigned(np.func, br), inSt.locals))
-          else
-            val joined = old ⊔ inSt
-            AbsState(widen(old.locals, joined.locals))
-        case _ => old ⊔ inSt
-      if (newSt != old)
-        npMap += np -> newSt
+          if (oldSt.isBottom) newSt.preWiden(loopAssigned(br))
+          else (oldSt ⊔ newSt).widen(oldSt)
+        case _ => oldSt ⊔ newSt
+      if (joined != oldSt)
+        npMap += np -> joined
         worklist += np
 
   /** locals assigned in the body of a loop */
-  private val loopAssignedMap = mutable.Map[Branch, Set[String]]()
-  def loopAssigned(func: Func, br: Branch): Set[String] =
+  private val loopAssignedMap = mutable.Map[Branch, Set[Local]]()
+  def loopAssigned(br: Branch): Set[Local] =
     loopAssignedMap.getOrElseUpdate(
       br, {
         // nodes on a cycle through the loop head
@@ -178,7 +153,7 @@ class FlowSummaryAnalyzer(
     )
 
   // ---------------------------------------------------------------------------
-  // result
+  // Result
   // ---------------------------------------------------------------------------
   case class Summary(
     name: String,
@@ -192,8 +167,8 @@ class FlowSummaryAnalyzer(
     catch
       case BudgetExceeded =>
         warn("budget exceeded: partial result")
-    getResult(ReturnPoint(target, emptyView)) match
-      case AbsRet(ret) => transfer.flowsTo(ret, APath(Root.Ret), 0)
+    val AbsRet(ret) = getResult(ReturnPoint(target, emptyView))
+    transfer.flowsTo(ret, APath(Root.Ret), 0)
     Summary(
       target.name,
       subsume(

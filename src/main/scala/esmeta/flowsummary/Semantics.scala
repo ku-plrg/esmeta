@@ -4,14 +4,8 @@ import esmeta.cfg.{Block, Call, Node}
 import esmeta.ir.*
 import esmeta.flowsummary.Lit.*
 
-/** helpers for the flow-summary analysis that do not depend on its state */
+/** helpers for the flow-summary analysis that do not depend on its domains */
 object Semantics {
-
-  /** locals mapped to abstract values */
-  type Locals = Map[String, AbsVal]
-
-  /** the evaluation context of an expression */
-  case class Ctx(st: Locals, fname: String)
 
   object BudgetExceeded extends Exception("analysis budget exceeded")
 
@@ -80,59 +74,18 @@ object Semantics {
     case Name(n) => n
     case Temp(i) => s"%$i"
 
-  /** join of locals; a local missing on one side may be absent */
-  def joinLocals(x: Locals, y: Locals): Locals =
-    (x.keySet ++ y.keySet).map { k =>
-      (x.get(k), y.get(k)) match
-        case (Some(u), Some(v)) => k -> (u ⊔ v)
-        case (Some(u), None)    => k -> u.copy(maybeAbsent = true)
-        case (None, Some(v))    => k -> v.copy(maybeAbsent = true)
-        case _                  => ???
-    }.toMap
-
-  /** forget constants that keep changing in loops */
-  def widen(prev: Locals, next: Locals): Locals = next.map { (k, v) =>
-    prev.get(k) match
-      case Some(pv) =>
-        val c = if (pv.cst != v.cst) Cst.Top else v.cst
-        val p = if (pv.popped != v.popped) AbsVal.Unknown else v.popped
-        k -> v.copy(cst = c, popped = p)
-      case _ => k -> v
-  }
-
-  /** forget constants of loop-carried variables up front */
-  def preWiden(assigned: Set[String], st: Locals): Locals = st.map { (k, v) =>
-    if (!assigned.contains(k)) k -> v
-    else
-      val c = if (v.cst == Cst.Bot) Cst.Bot else Cst.Top
-      val p = if (v.locs.nonEmpty) AbsVal.Unknown else v.popped
-      k -> v.copy(cst = c, popped = p)
-  }
-
   /** locals assigned in a CFG node */
-  def assignedVars(node: Node): Set[String] = node match
+  def assignedVars(node: Node): Set[Local] = node match
     case Block(_, insts, _) => insts.flatMap(assignedVars).toSet
-    case call: Call         => Set(localName(call.lhs))
+    case call: Call         => Set(call.lhs)
     case _                  => Set()
 
-  def assignedVars(inst: NormalInst): Set[String] = inst match
-    case ILet(x, _)                 => Set(x.name)
-    case IAssign(x: Local, _)       => Set(localName(x))
-    case IPop(x, ERef(l: Local), _) => Set(localName(x), localName(l))
-    case IPop(x, _, _)              => Set(localName(x))
+  def assignedVars(inst: NormalInst): Set[Local] = inst match
+    case ILet(x, _)                 => Set(x)
+    case IAssign(x: Local, _)       => Set(x)
+    case IPop(x, ERef(l: Local), _) => Set(x, l)
+    case IPop(x, _, _)              => Set(x)
     case _                          => Set()
-
-  /** drop information that is only meaningful inside one function */
-  def stripKeys(v: AbsVal, dropWithout: Boolean = true): AbsVal =
-    def without(s: Src) = dropWithout && s.path.last == Some(WithoutElem)
-    def local(s: Src) = s.key.isDefined || without(s)
-    if (!v.srcs.exists(local) && v.isArrayOf.isEmpty) v
-    else
-      val srcs = v.srcs.map { s =>
-        val p = if (without(s)) s.path.init else s.path
-        Src(p, s.value)
-      }
-      v.copy(srcs = srcs, isArrayOf = Set())
 
   /** CodeQL turns value flow that reads an unknown array index into taint flow
     * from the array itself (`TaintTrackingPrivate.qll`), but not reads of a
@@ -179,26 +132,22 @@ object Semantics {
   }
 
   /** variables that are abrupt completions if the condition holds */
-  def abruptVars(cond: Expr): List[String] = cond match
+  def abruptVars(cond: Expr): List[Local] = cond match
     case EBinary(BOp.And, l, r) => abruptVars(l) ++ abruptVars(r)
-    case ETypeCheck(ERef(x: Local), ty) if isAbrupt(ty) => List(localName(x))
+    case ETypeCheck(ERef(x: Local), ty) if isAbrupt(ty) => List(x)
     case EUnary(
           UOp.Not,
           EBinary(BOp.Eq, ERef(Field(x: Local, EStr("Type"))), EEnum("normal")),
         ) =>
-      List(localName(x))
+      List(x)
     case _ => Nil
 
-  /** locals known to hold completion records (`assert (? x: Completion)`) */
-  def compMark(x: String): String = s"#comp:$x"
-  def isComp(ref: Ref)(using ctx: Ctx): Boolean = ref match
-    case x: Local => ctx.st.contains(compMark(localName(x)))
-    case _        => false
-  def compChecked(expr: Expr): List[String] = expr match
+  /** locals checked to be completion records in a condition */
+  def compChecked(expr: Expr): List[Local] = expr match
     case EBinary(_, l, r) => compChecked(l) ++ compChecked(r)
     case EUnary(_, e)     => compChecked(e)
     case ETypeCheck(ERef(x: Local), ty) if ty.ty.isCompletion =>
-      List(localName(x))
+      List(x)
     case _ => Nil
 
   def isAbrupt(ty: Type): Boolean =
@@ -222,43 +171,4 @@ object Semantics {
     case LUndef   => Some("undefined")
     case LNull    => Some("null")
     case _        => None
-
-  /** a value known not to be an array */
-  def nonArray(v: AbsVal): AbsVal = v.copy(srcs = v.srcs.map { s =>
-    if (!s.value || s.path.last == Some(WithoutElem)) s
-    else s.copy(path = s.path.add(WithoutElem), key = None)
-  })
-
-  /** the locals tested by `IsArray` in a condition, and whether the condition
-    * holds when the value is an array
-    */
-  def isArrayTest(cond: Expr, st: Locals): Option[(Set[String], Boolean)] =
-    def tested(x: Local) =
-      st.get(localName(x)).map(_.isArrayOf).filter(_.nonEmpty)
-    cond match
-      case ERef(x: Local)                            => tested(x).map((_, true))
-      case EBinary(BOp.Eq, ERef(x: Local), EBool(b)) => tested(x).map((_, b))
-      case EUnary(UOp.Not, c) => isArrayTest(c, st).map((s, b) => (s, !b))
-      case _                  => None
-
-  /** refine locals for both branches of a condition (`None`: unreachable) */
-  def refine(cond: Expr, st0: Locals): (Locals, Locals) =
-    val st = st0 ++ compChecked(cond).map(compMark(_) -> AbsVal.Clean)
-    val (t, e) = cond match
-      // abrupt completions are not represented; the value is normal
-      case _ if abruptVars(cond).nonEmpty =>
-        (st ++ abruptVars(cond).map(_ -> AbsVal.Bot), st)
-      case EBinary(BOp.Lt, EMath(n), ESizeOf(ERef(x: Local)))
-          if n == 0 && st.contains(localName(x)) =>
-        // the list is empty in the else branch
-        val v = st(localName(x))
-        (st, st + (localName(x) -> v.copy(rest = Set(), popped = AbsVal.Empty)))
-      case _ => (st, st)
-    isArrayTest(cond, st) match
-      case Some((tested, positive)) =>
-        def mark(s: Locals): Locals = s.map { (k, v) =>
-          if (tested.contains(k)) k -> nonArray(v) else k -> v
-        }
-        if (positive) (t, mark(e)) else (mark(t), e)
-      case None => (t, e)
 }

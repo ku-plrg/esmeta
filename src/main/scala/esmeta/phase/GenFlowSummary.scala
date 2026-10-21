@@ -21,7 +21,15 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
       .filter(f => f.isBuiltin && target.matches(f.name))
       .sortBy(_.name)
     val results = for (f <- builtins) yield
-      val analyzer = FlowSummaryAnalyzer(cfg, f, config.intent)
+      val analyzer = FlowSummaryAnalyzer(
+        cfg,
+        f,
+        config.intent,
+        log = config.log,
+        detail = config.detail,
+        useRepl = config.useRepl,
+        replContinue = config.replContinue,
+      )
       val res =
         try analyzer.result
         catch
@@ -81,11 +89,35 @@ case object GenFlowSummary extends Phase[CFG, Unit] {
       "CodeQL intent rules to apply: `all`, `none` (default), or a list of " +
       Intent.values.map(i => s"`${i.name}` (${i.desc})").mkString(", ") + ".",
     ),
+    (
+      "repl",
+      BoolOption(_.useRepl = _),
+      "use a REPL for the analysis of each built-in function.",
+    ),
+    (
+      "repl-continue",
+      BoolOption(_.replContinue = _),
+      "run the `continue` command at startup when using the REPL.",
+    ),
+    (
+      "log",
+      BoolOption(_.log = _),
+      "logging mode.",
+    ),
+    (
+      "detail-log",
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
+      "logging mode with detailed information.",
+    ),
   )
   case class Config(
     var target: String =
       """INTRINSICS\.(Array|String)\.prototype\.[A-Za-z]+|INTRINSICS\.(Array|Object|JSON|String)\.[A-Za-z]+""",
     var out: String = s"$LOG_DIR/flow-summary",
     var intent: Set[Intent] = Set(),
+    var useRepl: Boolean = false,
+    var replContinue: Boolean = false,
+    var log: Boolean = false,
+    var detail: Boolean = false,
   )
 }
